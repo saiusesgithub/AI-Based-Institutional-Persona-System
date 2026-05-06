@@ -5,9 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.chat import router as chat_router
+from app.routes.lipsync import router as lipsync_router
 from app.routes.tts import router as tts_router
 from app.services.elevenlabs_service import ElevenLabsService
 from app.services.gemini_service import GeminiService
+from app.services.rhubarb_service import RhubarbService
 
 try:
     from dotenv import load_dotenv
@@ -40,8 +42,10 @@ app.add_middleware(
 
 app.state.gemini_service = GeminiService()
 app.state.elevenlabs_service = ElevenLabsService()
+app.state.rhubarb_service = RhubarbService()
 app.include_router(chat_router)
 app.include_router(tts_router)
+app.include_router(lipsync_router)
 
 
 @app.get("/")

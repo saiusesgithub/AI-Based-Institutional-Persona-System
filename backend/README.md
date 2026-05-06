@@ -21,6 +21,7 @@ macOS or Linux activation:
 - GET /health
 - POST /chat
 - POST /tts
+- POST /lipsync
 
 ### POST /chat
 
@@ -51,6 +52,7 @@ GEMINI_MODEL=gemini-2.5-flash
 ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
 ELEVENLABS_MODEL=eleven_multilingual_v2
 ELEVENLABS_DEFAULT_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+RHUBARB_PATH=C:\tools\rhubarb\rhubarb.exe
 FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
@@ -92,4 +94,36 @@ Independent test:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/tts -H "Content-Type: application/json" -d "{\"text\":\"Welcome to the institution.\",\"persona\":\"reception-assistant\"}"
+```
+
+## Rhubarb lip sync setup
+
+Install Rhubarb Lip Sync and point the backend to the executable:
+
+```env
+RHUBARB_PATH=C:\tools\rhubarb\rhubarb.exe
+```
+
+The frontend converts returned TTS audio into WAV, sends it to `POST /lipsync`, and the backend returns Rhubarb mouth cues.
+
+### POST /lipsync
+
+Request:
+
+```json
+{
+  "audio_base64": "...",
+  "audio_format": "wav"
+}
+```
+
+Response:
+
+```json
+{
+  "phonemes": [
+    { "start": 0.0, "end": 0.08, "value": "X" },
+    { "start": 0.08, "end": 0.2, "value": "A" }
+  ]
+}
 ```

@@ -45,7 +45,8 @@ macOS or Linux activation:
 5. The frontend appends the AI response to chat history.
 6. The frontend sends the AI response text to `POST /tts`.
 7. FastAPI generates MP3 speech with ElevenLabs.
-8. The frontend plays the returned audio and exposes replay, stop, and mute controls.
+8. The frontend converts the returned audio to WAV and requests Rhubarb mouth cues from `POST /lipsync`.
+9. The frontend plays the audio and drives avatar mouth blendshapes from Rhubarb timing.
 
 ## Environment
 
@@ -57,6 +58,7 @@ GEMINI_MODEL=gemini-2.5-flash
 ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
 ELEVENLABS_MODEL=eleven_multilingual_v2
 ELEVENLABS_DEFAULT_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+RHUBARB_PATH=C:\tools\rhubarb\rhubarb.exe
 FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 

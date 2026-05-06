@@ -1,3 +1,5 @@
+import type { PhonemeCue } from "../types/avatar";
+
 export type PersonaId = "reception-assistant" | "hod" | "chairman";
 
 type ChatApiRequest = {
@@ -17,6 +19,15 @@ type TTSApiRequest = {
 type TTSApiResponse = {
   audio_url: string;
   audio_base64: string;
+};
+
+type LipSyncApiRequest = {
+  audio_base64: string;
+  audio_format: "wav";
+};
+
+type LipSyncApiResponse = {
+  phonemes: PhonemeCue[];
 };
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -73,4 +84,22 @@ export async function generateSpeech(payload: TTSApiRequest): Promise<TTSApiResp
   }
 
   return response.json() as Promise<TTSApiResponse>;
+}
+
+export async function generateLipSync(payload: LipSyncApiRequest): Promise<LipSyncApiResponse> {
+  const response = await fetch(`${apiBaseUrl}/lipsync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const message = getErrorMessage(errorBody, "Lip sync generation failed.");
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<LipSyncApiResponse>;
 }

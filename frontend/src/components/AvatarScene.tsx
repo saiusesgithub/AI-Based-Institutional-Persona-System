@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useAvatarSpeechAnimation } from "../hooks/useAvatarSpeechAnimation";
-import type { AvatarState } from "../types/avatar";
+import type { AvatarState, LipSyncPlayback } from "../types/avatar";
 
 const modelUrl = new URL("../assets/avatars/hod.fbx", import.meta.url).toString();
 
@@ -22,6 +22,7 @@ type HeadshotConfig = {
 
 type AvatarSceneProps = {
   avatarState: AvatarState;
+  lipSyncPlayback: LipSyncPlayback | null;
 };
 
 const fixedHeadshotTarget: [number, number, number] = [0, 1.6374, -0.05];
@@ -82,13 +83,13 @@ function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   return null;
 }
 
-export default function AvatarScene({ avatarState }: AvatarSceneProps) {
+export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarSceneProps) {
   const model = useFBX(modelUrl);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const morphTargetsRef = useRef<Record<string, MorphTargetInfo>>({});
   const [headshotTarget, setHeadshotTarget] = useState<[number, number, number]>([0, 1.4, 0]);
   const [headshotDistance, setHeadshotDistance] = useState(2.2);
-  const { availableBlendshapes } = useAvatarSpeechAnimation(model, avatarState);
+  const { availableBlendshapes, debugState } = useAvatarSpeechAnimation(model, avatarState, lipSyncPlayback);
   const stateStyle = avatarStateStyles[avatarState];
 
   useEffect(() => {
@@ -220,6 +221,28 @@ export default function AvatarScene({ avatarState }: AvatarSceneProps) {
       </div>
       <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-lg border border-slate-800/70 bg-slate-950/75 px-3 py-2 text-[11px] text-slate-400 backdrop-blur">
         Morph targets: {availableBlendshapes.length}
+      </div>
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 w-56 rounded-lg border border-slate-800/70 bg-slate-950/75 p-3 text-[11px] text-slate-400 backdrop-blur">
+        <div className="mb-2 flex items-center justify-between text-slate-300">
+          <span>Lip Sync Debug</span>
+          <span>{debugState.isSpeaking ? "speaking" : "idle"}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <span>phoneme</span>
+          <span className="text-cyan-200">{debugState.currentPhoneme}</span>
+          <span>viseme</span>
+          <span className="text-cyan-200">{debugState.currentViseme}</span>
+          <span>time</span>
+          <span className="text-cyan-200">{debugState.currentTime.toFixed(2)}s</span>
+        </div>
+        <div className="mt-2 max-h-20 overflow-hidden border-t border-slate-800/80 pt-2">
+          {Object.entries(debugState.morphTargets).slice(0, 5).map(([name, value]) => (
+            <div key={name} className="flex justify-between gap-3">
+              <span>{name}</span>
+              <span className="text-slate-200">{value.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
       </div>
       <Canvas
         shadows

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import AssistantPanel from "./components/AssistantPanel";
 import AvatarScene from "./components/AvatarScene";
-import type { AvatarState } from "./types/avatar";
+import type { AvatarState, LipSyncPlayback } from "./types/avatar";
 
 export default function App() {
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+  const [lipSyncPlayback, setLipSyncPlayback] = useState<LipSyncPlayback | null>(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
@@ -20,10 +21,13 @@ export default function App() {
             </p>
           </header>
           <div className="flex-1">
-            <AvatarScene avatarState={avatarState} />
+            <AvatarScene avatarState={avatarState} lipSyncPlayback={lipSyncPlayback} />
           </div>
         </section>
-        <AssistantPanel onAvatarStateChange={setAvatarState} />
+        <AssistantPanel
+          onAvatarStateChange={setAvatarState}
+          onLipSyncPlaybackChange={setLipSyncPlayback}
+        />
       </div>
     </div>
   );
