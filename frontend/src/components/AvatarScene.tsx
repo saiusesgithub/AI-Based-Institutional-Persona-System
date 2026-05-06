@@ -1,5 +1,6 @@
 import { Environment, Html, OrbitControls, useFBX } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
+import { motion } from "framer-motion";
 import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -175,7 +176,15 @@ export default function AvatarScene() {
   }, []);
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-950/60">
+    <motion.div
+      className="avatar-frame relative h-full w-full overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/70"
+      animate={{ y: [0, -6, 0], scale: [1, 1.01, 1] }}
+      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+    >
+      <div className="avatar-glow pointer-events-none absolute inset-0" />
+      <div className="avatar-particles pointer-events-none absolute inset-0" />
+      <div className="avatar-blink pointer-events-none absolute inset-0" />
+
       <Canvas
         shadows
         camera={{ position: [0, 1.4, 2.2], fov: 26, near: 0.05, far: 100 }}
@@ -193,15 +202,16 @@ export default function AvatarScene() {
             distance={fixedHeadshotDistance}
             fov={fixedHeadshotFov}
           />
-          <ambientLight intensity={0.45} />
+          <ambientLight intensity={0.55} />
           <directionalLight
             castShadow
             position={[3, 5, 2]}
-            intensity={1.2}
+            intensity={1.35}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
-          <spotLight position={[-2, 5, 4]} intensity={0.6} angle={0.35} penumbra={0.5} />
+          <spotLight position={[-2, 5, 4]} intensity={0.7} angle={0.35} penumbra={0.5} />
+          <spotLight position={[2, 6, -2]} intensity={0.45} angle={0.45} penumbra={0.6} />
 
           <group position={[0, 0, 0]}>
             <primitive object={model} />
@@ -228,7 +238,12 @@ export default function AvatarScene() {
           />
         </Suspense>
       </Canvas>
-    </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+      <div className="pointer-events-none absolute left-6 top-6 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-cyan-100/80">
+        cinematic preview
+      </div>
+    </motion.div>
   );
 }
 

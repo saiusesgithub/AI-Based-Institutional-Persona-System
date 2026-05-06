@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -14,4 +14,142 @@ body {
   margin: 0;
   font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   background-color: #020617;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Orbitron", "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  }
+
+  .glass-card {
+    @apply rounded-xl border bg-slate-950/50 p-4 shadow-[0_20px_50px_rgba(8,15,30,0.45)] backdrop-blur;
+  }
+}
+
+.mesh-bg {
+  background-image: radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.15), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(6, 182, 212, 0.12), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.12), transparent 50%),
+    radial-gradient(circle at 30% 80%, rgba(34, 211, 238, 0.12), transparent 45%);
+  filter: blur(10px);
+  animation: meshShift 18s ease-in-out infinite alternate;
+}
+
+.particles-bg {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-size: 120px 120px;
+  opacity: 0.25;
+  animation: drift 22s linear infinite;
+}
+
+.scanlines {
+  background-image: linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 100% 4px;
+  mix-blend-mode: screen;
+}
+
+.avatar-frame {
+  box-shadow: inset 0 0 40px rgba(34, 211, 238, 0.12), 0 25px 80px rgba(5, 10, 25, 0.8);
+}
+
+.avatar-glow {
+  background: radial-gradient(circle at 50% 35%, rgba(34, 211, 238, 0.25), transparent 60%),
+    radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8), transparent 70%);
+  opacity: 0.9;
+}
+
+.avatar-particles {
+  background-image: radial-gradient(rgba(34, 211, 238, 0.35) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.2;
+  animation: drift 16s linear infinite;
+}
+
+.avatar-blink {
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), transparent 45%);
+  opacity: 0;
+  animation: blink 7s ease-in-out infinite;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.7);
+  animation: bounce 1.2s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.mic-pulse {
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  box-shadow: 0 0 45px rgba(52, 211, 153, 0.35);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes meshShift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-2%, 1%, 0) scale(1.05);
+  }
+}
+
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-3%, -2%, 0);
+  }
+}
+
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    opacity: 0;
+  }
+  94%,
+  96% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.2;
+  }
 }

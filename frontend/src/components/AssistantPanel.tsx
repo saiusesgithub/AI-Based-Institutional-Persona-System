@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { useCallback, useState } from "react";
 import ChatPanel from "./ChatPanel";
 import type { ChatMessage } from "./ChatPanel";
@@ -29,10 +30,15 @@ export default function AssistantPanel() {
   }, []);
 
   return (
-    <aside className="flex h-full flex-col gap-4 rounded-2xl border border-slate-800/60 bg-slate-950/70 p-5 shadow-2xl shadow-cyan-500/10 backdrop-blur">
-      <div>
+    <motion.aside
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="flex h-full flex-col gap-4 rounded-2xl border border-cyan-400/20 bg-slate-950/70 p-5 shadow-[0_25px_80px_rgba(8,15,30,0.65)] backdrop-blur"
+    >
+      <div className="glass-card border-cyan-400/20">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-100">AI Assistant</h2>
+          <h2 className="font-display text-lg font-semibold text-slate-100">AI Assistant</h2>
           <span
             className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
               assistantState === "listening"
@@ -45,8 +51,8 @@ export default function AssistantPanel() {
             {assistantState}
           </span>
         </div>
-        <p className="mt-2 text-xs text-slate-400">
-          Push-to-talk voice input with realtime transcript capture.
+        <p className="mt-2 text-xs text-slate-300/80">
+          Voice-first control with realtime transcription and neural response states.
         </p>
       </div>
       <PersonaSelector />
@@ -60,9 +66,9 @@ export default function AssistantPanel() {
         onLiveTranscriptChange={setLiveTranscript}
         onListeningChange={handleListeningChange}
       />
-      <div className="mt-auto rounded-lg border border-dashed border-slate-700/70 p-3 text-xs text-slate-400">
+      <div className="mt-auto rounded-lg border border-dashed border-cyan-400/20 bg-slate-950/40 p-3 text-xs text-slate-400">
         System status: microphone capture local only. Backend upload is prepared but not connected.
       </div>
-    </aside>
+    </motion.aside>
   );
 }
