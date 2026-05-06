@@ -3,29 +3,70 @@ import ChatPanel from "./ChatPanel";
 import type { ChatMessage } from "./ChatPanel";
 import PersonaSelector from "./PersonaSelector";
 import VoiceControls from "./VoiceControls";
+import { sendChatMessage } from "../services/chatApi";
+import type { PersonaId } from "../services/chatApi";
 
 export default function AssistantPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [assistantState, setAssistantState] = useState<"idle" | "listening" | "thinking">("idle");
+  const [selectedPersona, setSelectedPersona] = useState<PersonaId>("reception-assistant");
 
-  const handleTranscriptFinalized = useCallback((transcript: string) => {
+  const handleTranscriptFinalized = useCallback(async (transcript: string) => {
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text: transcript,
+      createdAt: new Date()
+    };
+
     setMessages((current) => [
       ...current,
-      {
-        id: crypto.randomUUID(),
-        role: "user",
-        text: transcript,
-        createdAt: new Date()
-      }
+      userMessage
     ]);
     setLiveTranscript("");
     setAssistantState("thinking");
-    window.setTimeout(() => setAssistantState("idle"), 700);
-  }, []);
+
+    try {
+      const { response } = await sendChatMessage({
+        message: transcript,
+        persona: selectedPersona
+      });
+
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: response,
+          createdAt: new Date()
+        }
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to reach the AI service.";
+
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: "system",
+          text: message,
+          createdAt: new Date()
+        }
+      ]);
+    } finally {
+      setAssistantState("idle");
+    }
+  }, [selectedPersona]);
 
   const handleListeningChange = useCallback((isListening: boolean) => {
-    setAssistantState(isListening ? "listening" : "idle");
+    setAssistantState((current) => {
+      if (isListening) {
+        return "listening";
+      }
+
+      return current === "listening" ? "idle" : current;
+    });
   }, []);
 
   return (
@@ -49,7 +90,7 @@ export default function AssistantPanel() {
           Push-to-talk voice input with realtime transcript capture.
         </p>
       </div>
-      <PersonaSelector />
+      <PersonaSelector value={selectedPersona} onChange={setSelectedPersona} />
       <ChatPanel
         messages={messages}
         liveTranscript={liveTranscript}
@@ -61,7 +102,7 @@ export default function AssistantPanel() {
         onListeningChange={handleListeningChange}
       />
       <div className="mt-auto rounded-lg border border-dashed border-slate-700/70 p-3 text-xs text-slate-400">
-        System status: microphone capture local only. Backend upload is prepared but not connected.
+        System status: transcripts are routed to the persona-aware Gemini backend.
       </div>
     </aside>
   );

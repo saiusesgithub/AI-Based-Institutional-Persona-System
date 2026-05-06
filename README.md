@@ -30,5 +30,30 @@ macOS or Linux activation:
 
 ## Notes
 
-- Frontend components are placeholders only.
-- Backend exposes a simple health endpoint.
+- Frontend voice transcripts are sent to the backend `/chat` route.
+- Backend uses Gemini 2.5 Flash with persona prompts from `backend/app/personas.json`.
+- Set `GEMINI_API_KEY` in `backend/.env` before using AI responses.
+
+## Chat flow
+
+1. Browser speech recognition converts speech to text in the frontend.
+2. The selected persona key and transcript are sent to `POST /chat`.
+3. FastAPI builds a persona-specific Gemini system prompt.
+4. Gemini returns a concise institutional response.
+5. The frontend appends the AI response to chat history.
+
+## Environment
+
+Backend:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Frontend:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```

@@ -55,6 +55,19 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
             </p>
           </article>
         ) : null}
+
+        {assistantState === "thinking" ? (
+          <article className="rounded-lg border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-violet-50">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-violet-200/70">
+              Assistant
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200 [animation-delay:120ms]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200 [animation-delay:240ms]" />
+            </div>
+          </article>
+        ) : null}
       </div>
     </section>
   );

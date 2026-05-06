@@ -14,7 +14,9 @@ export default function VoiceControls({
   onListeningChange
 }: VoiceControlsProps) {
   const [isLocked, setIsLocked] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const lastSubmittedTranscriptRef = useRef("");
+  const transcriptRef = useRef("");
   const {
     status: microphoneStatus,
     error: microphoneError,
@@ -51,6 +53,7 @@ export default function VoiceControls({
 
   useEffect(() => {
     onLiveTranscriptChange(visibleTranscript);
+    transcriptRef.current = visibleTranscript;
   }, [onLiveTranscriptChange, visibleTranscript]);
 
   useEffect(() => {
@@ -58,13 +61,21 @@ export default function VoiceControls({
   }, [isListening, onListeningChange]);
 
   useEffect(() => {
-    const transcriptForSubmission = finalTranscript.trim() || visibleTranscript.trim();
+    if (!isStopping || microphoneStatus !== "idle") {
+      return;
+    }
 
-    if (microphoneStatus !== "idle" || !transcriptForSubmission) {
+    const transcriptForSubmission = (finalTranscript || transcriptRef.current).trim();
+
+    setIsStopping(false);
+
+    if (!transcriptForSubmission) {
+      resetTranscript();
       return;
     }
 
     if (transcriptForSubmission === lastSubmittedTranscriptRef.current) {
+      resetTranscript();
       return;
     }
 
@@ -72,16 +83,13 @@ export default function VoiceControls({
     onTranscriptFinalized(transcriptForSubmission);
     createUploadPayload(transcriptForSubmission);
     resetTranscript();
-  }, [
-    createUploadPayload,
-    finalTranscript,
-    microphoneStatus,
-    onTranscriptFinalized,
-    resetTranscript,
-    visibleTranscript
-  ]);
+  }, [createUploadPayload, finalTranscript, isStopping, microphoneStatus, onTranscriptFinalized, resetTranscript]);
 
   const startVoiceInput = () => {
+    setIsStopping(false);
+    lastSubmittedTranscriptRef.current = "";
+    transcriptRef.current = "";
+    resetTranscript();
     startRecording();
     if (isSpeechSupported) {
       startListening();
@@ -89,6 +97,12 @@ export default function VoiceControls({
   };
 
   const stopVoiceInput = () => {
+    if (isStopping) {
+      return;
+    }
+
+    transcriptRef.current = (finalTranscript || visibleTranscript).trim();
+    setIsStopping(true);
     stopRecording();
     stopListening();
     setIsLocked(false);
