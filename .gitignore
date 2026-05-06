@@ -5,6 +5,8 @@ dist/
 *.tsbuildinfo
 .deps/
 .tmp/
+generated_audio/
+backend/app/generated_audio/
 
 # Python
 __pycache__/

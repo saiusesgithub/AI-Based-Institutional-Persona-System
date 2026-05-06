@@ -15,7 +15,7 @@ type AssistantPanelProps = {
 };
 
 function mapAssistantToAvatarState(state: AssistantState): AvatarState {
-  return state === "generating-voice" ? "thinking" : state;
+  return state === "generating-voice" || state === "processing-lipsync" ? "thinking" : state;
 }
 
 export default function AssistantPanel({
@@ -30,7 +30,6 @@ export default function AssistantPanel({
   const [isMuted, setIsMuted] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [lastSpokenText, setLastSpokenText] = useState("");
   const [lipSyncCues, setLipSyncCues] = useState<PhonemeCue[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -38,32 +37,8 @@ export default function AssistantPanel({
     onAvatarStateChange(mapAssistantToAvatarState(assistantState));
   }, [assistantState, onAvatarStateChange]);
 
-  const speakWithBrowser = useCallback((text: string) => {
-    if (isMuted || !("speechSynthesis" in window)) {
-      setAssistantState("idle");
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.96;
-    utterance.pitch = selectedPersona === "chairman" ? 0.86 : 1;
-    utterance.onstart = () => setAssistantState("speaking");
-    utterance.onend = () => setAssistantState("idle");
-    utterance.onerror = () => setAssistantState("idle");
-
-    window.speechSynthesis.speak(utterance);
-  }, [isMuted, selectedPersona]);
-
   const playAudio = useCallback(async () => {
     const audio = audioRef.current;
-
-    if (!audio?.src && lastSpokenText) {
-      onLipSyncPlaybackChange(null);
-      speakWithBrowser(lastSpokenText);
-      return;
-    }
 
     if (!audio || !audio.src || isMuted) {
       return;
@@ -87,7 +62,7 @@ export default function AssistantPanel({
       setAssistantState("idle");
       onLipSyncPlaybackChange(null);
     }
-  }, [isMuted, lastSpokenText, lipSyncCues, onLipSyncPlaybackChange, speakWithBrowser]);
+  }, [isMuted, lipSyncCues, onLipSyncPlaybackChange]);
 
   const stopAudio = useCallback(() => {
     const audio = audioRef.current;
@@ -97,7 +72,6 @@ export default function AssistantPanel({
       audio.currentTime = 0;
     }
 
-    window.speechSynthesis?.cancel();
     onLipSyncPlaybackChange(null);
     setAssistantState("idle");
   }, [onLipSyncPlaybackChange]);
@@ -108,7 +82,6 @@ export default function AssistantPanel({
 
       if (nextMuted) {
         audioRef.current?.pause();
-        window.speechSynthesis?.cancel();
         onLipSyncPlaybackChange(null);
         setAssistantState("idle");
       }
@@ -131,7 +104,6 @@ export default function AssistantPanel({
     ]);
     setLiveTranscript("");
     setVoiceError(null);
-    setLastSpokenText("");
     setLipSyncCues([]);
     onLipSyncPlaybackChange(null);
     setAssistantState("thinking");
@@ -144,7 +116,6 @@ export default function AssistantPanel({
         persona: selectedPersona
       });
       responseText = response;
-      setLastSpokenText(response);
 
       setMessages((current) => [
         ...current,
@@ -179,7 +150,6 @@ export default function AssistantPanel({
         persona: selectedPersona
       });
       const audio = audioRef.current;
-      let phonemes: PhonemeCue[] = [];
 
       setLastAudioUrl(voice.audio_url);
 
@@ -187,6 +157,12 @@ export default function AssistantPanel({
         setAssistantState("idle");
         return;
       }
+
+      audio.src = voice.audio_url;
+      audio.load();
+      setAssistantState("processing-lipsync");
+
+      let phonemes: PhonemeCue[] = [];
 
       try {
         const wavBase64 = await audioUrlToWavBase64(voice.audio_url);
@@ -201,8 +177,6 @@ export default function AssistantPanel({
         setVoiceError(`${message} Audio playback will continue without lip sync.`);
       }
 
-      audio.src = voice.audio_url;
-      audio.load();
       await audio.play();
       setAssistantState("speaking");
       onLipSyncPlaybackChange(
@@ -217,11 +191,11 @@ export default function AssistantPanel({
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Voice generation failed.";
-      setVoiceError(`${message} Using browser voice fallback.`);
+      setVoiceError(`${message} Audio playback is unavailable.`);
       onLipSyncPlaybackChange(null);
-      speakWithBrowser(responseText);
+      setAssistantState("idle");
     }
-  }, [isMuted, onLipSyncPlaybackChange, selectedPersona, speakWithBrowser]);
+  }, [isMuted, onLipSyncPlaybackChange, selectedPersona]);
 
   const handleListeningChange = useCallback((isListening: boolean) => {
     setAssistantState((current) => {
@@ -255,7 +229,7 @@ export default function AssistantPanel({
             className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
               assistantState === "listening"
                 ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
-                : assistantState === "thinking" || assistantState === "generating-voice"
+                : assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync"
                   ? "border-violet-300/50 bg-violet-300/10 text-violet-200"
                   : assistantState === "speaking"
                     ? "border-cyan-200/60 bg-cyan-200/10 text-cyan-100"
@@ -371,7 +345,7 @@ export default function AssistantPanel({
         onListeningChange={handleListeningChange}
       />
       <div className="mt-auto rounded-lg border border-dashed border-slate-700/70 p-3 text-xs text-slate-400">
-        System status: responses are routed through Gemini and ElevenLabs voice output.
+        System status: responses are routed through Gemini, Edge TTS, and Rhubarb lip sync.
       </div>
     </aside>
   );
