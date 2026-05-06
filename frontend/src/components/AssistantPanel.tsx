@@ -1,26 +1,67 @@
+import { useCallback, useState } from "react";
 import ChatPanel from "./ChatPanel";
+import type { ChatMessage } from "./ChatPanel";
 import PersonaSelector from "./PersonaSelector";
 import VoiceControls from "./VoiceControls";
 
 export default function AssistantPanel() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [assistantState, setAssistantState] = useState<"idle" | "listening" | "thinking">("idle");
+
+  const handleTranscriptFinalized = useCallback((transcript: string) => {
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        role: "user",
+        text: transcript,
+        createdAt: new Date()
+      }
+    ]);
+    setLiveTranscript("");
+    setAssistantState("thinking");
+    window.setTimeout(() => setAssistantState("idle"), 700);
+  }, []);
+
+  const handleListeningChange = useCallback((isListening: boolean) => {
+    setAssistantState(isListening ? "listening" : "idle");
+  }, []);
+
   return (
     <aside className="flex h-full flex-col gap-4 rounded-2xl border border-slate-800/60 bg-slate-950/70 p-5 shadow-2xl shadow-cyan-500/10 backdrop-blur">
       <div>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-100">AI Assistant</h2>
-          <span className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-cyan-200">
-            Standby
+          <span
+            className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
+              assistantState === "listening"
+                ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
+                : assistantState === "thinking"
+                  ? "border-violet-300/50 bg-violet-300/10 text-violet-200"
+                  : "border-cyan-400/40 bg-cyan-400/10 text-cyan-200"
+            }`}
+          >
+            {assistantState}
           </span>
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Placeholder interface for persona, chat, and voice control modules.
+          Push-to-talk voice input with realtime transcript capture.
         </p>
       </div>
       <PersonaSelector />
-      <ChatPanel />
-      <VoiceControls />
+      <ChatPanel
+        messages={messages}
+        liveTranscript={liveTranscript}
+        assistantState={assistantState}
+      />
+      <VoiceControls
+        onTranscriptFinalized={handleTranscriptFinalized}
+        onLiveTranscriptChange={setLiveTranscript}
+        onListeningChange={handleListeningChange}
+      />
       <div className="mt-auto rounded-lg border border-dashed border-slate-700/70 p-3 text-xs text-slate-400">
-        System status: avatar pipeline ready.
+        System status: microphone capture local only. Backend upload is prepared but not connected.
       </div>
     </aside>
   );

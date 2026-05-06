@@ -35,14 +35,15 @@ function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   const { camera } = useThree();
 
   useEffect(() => {
+    const perspectiveCamera = camera as THREE.PerspectiveCamera;
     const safeDistance = Math.max(distance, 0.9);
 
-    camera.near = 0.05;
-    camera.far = Math.max(60, safeDistance * 30);
-    camera.fov = fov;
-    camera.position.set(target[0], target[1], target[2] + safeDistance);
-    camera.lookAt(target[0], target[1], target[2]);
-    camera.updateProjectionMatrix();
+    perspectiveCamera.near = 0.05;
+    perspectiveCamera.far = Math.max(60, safeDistance * 30);
+    perspectiveCamera.fov = fov;
+    perspectiveCamera.position.set(target[0], target[1], target[2] + safeDistance);
+    perspectiveCamera.lookAt(target[0], target[1], target[2]);
+    perspectiveCamera.updateProjectionMatrix();
   }, [camera, distance, fov, target]);
 
   return null;
