@@ -1,3 +1,5 @@
+import type { AssistantState } from "../types/avatar";
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant" | "system";
@@ -8,7 +10,7 @@ export type ChatMessage = {
 type ChatPanelProps = {
   messages: ChatMessage[];
   liveTranscript: string;
-  assistantState: "idle" | "listening" | "thinking" | "generating-voice" | "speaking";
+  assistantState: AssistantState;
 };
 
 export default function ChatPanel({ messages, liveTranscript, assistantState }: ChatPanelProps) {

@@ -1,7 +1,11 @@
+import { useState } from "react";
 import AssistantPanel from "./components/AssistantPanel";
 import AvatarScene from "./components/AvatarScene";
+import type { AvatarState } from "./types/avatar";
 
 export default function App() {
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-100">
       <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -16,10 +20,10 @@ export default function App() {
             </p>
           </header>
           <div className="flex-1">
-            <AvatarScene />
+            <AvatarScene avatarState={avatarState} />
           </div>
         </section>
-        <AssistantPanel />
+        <AssistantPanel onAvatarStateChange={setAvatarState} />
       </div>
     </div>
   );

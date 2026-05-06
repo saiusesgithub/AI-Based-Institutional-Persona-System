@@ -3,6 +3,8 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { useAvatarSpeechAnimation } from "../hooks/useAvatarSpeechAnimation";
+import type { AvatarState } from "../types/avatar";
 
 const modelUrl = new URL("../assets/avatars/hod.fbx", import.meta.url).toString();
 
@@ -18,6 +20,10 @@ type HeadshotConfig = {
   fov: number;
 };
 
+type AvatarSceneProps = {
+  avatarState: AvatarState;
+};
+
 const fixedHeadshotTarget: [number, number, number] = [0, 1.6374, -0.05];
 const fixedHeadshotDistance = 1.25;
 const fixedHeadshotFov = 22;
@@ -29,6 +35,33 @@ const relaxedArmPose = {
   upperArmY: 0.2,
   lowerArmZ: 0.55,
   lowerArmX: 0.25
+};
+
+const avatarStateStyles: Record<AvatarState, { label: string; border: string; glow: string; dot: string }> = {
+  idle: {
+    label: "Idle",
+    border: "border-slate-800/60",
+    glow: "shadow-cyan-500/10",
+    dot: "bg-slate-500"
+  },
+  listening: {
+    label: "Listening",
+    border: "border-emerald-300/50",
+    glow: "shadow-emerald-400/20",
+    dot: "bg-emerald-300"
+  },
+  thinking: {
+    label: "Thinking",
+    border: "border-violet-300/50",
+    glow: "shadow-violet-400/20",
+    dot: "bg-violet-300"
+  },
+  speaking: {
+    label: "Speaking",
+    border: "border-cyan-200/70",
+    glow: "shadow-cyan-300/30",
+    dot: "bg-cyan-200"
+  }
 };
 
 function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
@@ -49,12 +82,14 @@ function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   return null;
 }
 
-export default function AvatarScene() {
+export default function AvatarScene({ avatarState }: AvatarSceneProps) {
   const model = useFBX(modelUrl);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const morphTargetsRef = useRef<Record<string, MorphTargetInfo>>({});
   const [headshotTarget, setHeadshotTarget] = useState<[number, number, number]>([0, 1.4, 0]);
   const [headshotDistance, setHeadshotDistance] = useState(2.2);
+  const { availableBlendshapes } = useAvatarSpeechAnimation(model, avatarState);
+  const stateStyle = avatarStateStyles[avatarState];
 
   useEffect(() => {
     const meshNames: string[] = [];
@@ -158,7 +193,6 @@ export default function AvatarScene() {
     setHeadshotTarget([0, headY, 0]);
     setHeadshotDistance(distance);
 
-    // Placeholder for future lip sync mapping from blendshape names to influences.
   }, [model]);
 
   useEffect(() => {
@@ -175,7 +209,18 @@ export default function AvatarScene() {
   }, []);
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-950/60">
+    <div
+      className={`relative h-full w-full overflow-hidden rounded-2xl border bg-slate-950/60 shadow-2xl transition duration-300 ${stateStyle.border} ${stateStyle.glow}`}
+    >
+      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-xs text-slate-200 backdrop-blur">
+        <span className="mr-2 inline-flex h-2.5 w-2.5 rounded-full">
+          <span className={`h-2.5 w-2.5 rounded-full ${stateStyle.dot} ${avatarState === "speaking" ? "animate-ping" : ""}`} />
+        </span>
+        Avatar {stateStyle.label}
+      </div>
+      <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-lg border border-slate-800/70 bg-slate-950/75 px-3 py-2 text-[11px] text-slate-400 backdrop-blur">
+        Morph targets: {availableBlendshapes.length}
+      </div>
       <Canvas
         shadows
         camera={{ position: [0, 1.4, 2.2], fov: 26, near: 0.05, far: 100 }}

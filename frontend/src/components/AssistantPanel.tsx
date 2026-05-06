@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import ChatPanel from "./ChatPanel";
 import type { ChatMessage } from "./ChatPanel";
@@ -6,10 +6,17 @@ import PersonaSelector from "./PersonaSelector";
 import VoiceControls from "./VoiceControls";
 import { generateSpeech, sendChatMessage } from "../services/chatApi";
 import type { PersonaId } from "../services/chatApi";
+import type { AssistantState, AvatarState } from "../types/avatar";
 
-type AssistantState = "idle" | "listening" | "thinking" | "generating-voice" | "speaking";
+type AssistantPanelProps = {
+  onAvatarStateChange: (state: AvatarState) => void;
+};
 
-export default function AssistantPanel() {
+function mapAssistantToAvatarState(state: AssistantState): AvatarState {
+  return state === "generating-voice" ? "thinking" : state;
+}
+
+export default function AssistantPanel({ onAvatarStateChange }: AssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [assistantState, setAssistantState] = useState<AssistantState>("idle");
@@ -20,6 +27,10 @@ export default function AssistantPanel() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastSpokenText, setLastSpokenText] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    onAvatarStateChange(mapAssistantToAvatarState(assistantState));
+  }, [assistantState, onAvatarStateChange]);
 
   const speakWithBrowser = useCallback((text: string) => {
     if (isMuted || !("speechSynthesis" in window)) {
@@ -197,8 +208,10 @@ export default function AssistantPanel() {
             className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
               assistantState === "listening"
                 ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
-                : assistantState === "thinking"
+                : assistantState === "thinking" || assistantState === "generating-voice"
                   ? "border-violet-300/50 bg-violet-300/10 text-violet-200"
+                  : assistantState === "speaking"
+                    ? "border-cyan-200/60 bg-cyan-200/10 text-cyan-100"
                   : "border-cyan-400/40 bg-cyan-400/10 text-cyan-200"
             }`}
           >
