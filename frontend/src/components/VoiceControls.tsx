@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -52,6 +53,13 @@ export default function VoiceControls({
       : lastRecording
         ? "Ready"
         : "Standby";
+  const visualState = isListening
+    ? "listening"
+    : microphoneStatus === "requesting"
+      ? "thinking"
+      : lastRecording
+        ? "speaking"
+        : "idle";
 
   useEffect(() => {
     onLiveTranscriptChange(visibleTranscript);
@@ -170,7 +178,7 @@ export default function VoiceControls({
   };
 
   return (
-    <section className="rounded-xl border border-cyan-400/20 bg-slate-900/50 p-4 shadow-lg shadow-cyan-950/20">
+    <section className="glass-card border-cyan-400/20" data-voice-state={visualState}>
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
           Voice Input
@@ -187,19 +195,27 @@ export default function VoiceControls({
       </div>
 
       <div className="mt-5 flex flex-col items-center">
-        <button
+        <motion.button
           type="button"
           disabled={isUnavailable}
           aria-pressed={isListening}
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onPointerDown={handlePressStart}
           onPointerUp={handlePressEnd}
           onPointerCancel={handlePressEnd}
           className={`group relative grid h-36 w-36 place-items-center rounded-full border text-sm font-semibold transition duration-300 ${
             isListening
-              ? "border-emerald-200/80 bg-emerald-300 text-emerald-950 shadow-[0_0_60px_rgba(52,211,153,0.45)]"
-              : "border-cyan-300/40 bg-cyan-300/10 text-cyan-100 shadow-[0_0_45px_rgba(34,211,238,0.16)] hover:border-cyan-200/80 hover:bg-cyan-300/20"
+              ? "border-emerald-200/80 bg-emerald-300 text-emerald-950 shadow-[0_0_70px_rgba(52,211,153,0.45)]"
+              : "border-cyan-300/40 bg-cyan-300/10 text-cyan-100 shadow-[0_0_55px_rgba(34,211,238,0.2)] hover:border-cyan-200/80 hover:bg-cyan-300/20"
           } disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500`}
         >
+          <span className={`absolute inset-0 rounded-full ${isListening ? "mic-pulse" : ""}`} />
           <span
             className={`absolute inset-2 rounded-full border ${
               isListening ? "animate-ping border-emerald-100/40" : "border-cyan-200/10"
@@ -213,7 +229,7 @@ export default function VoiceControls({
           <span className="relative mt-20 text-[10px] uppercase tracking-[0.22em]">
             {isListening ? "Release" : "Hold"}
           </span>
-        </button>
+        </motion.button>
 
         <button
           type="button"
@@ -225,7 +241,7 @@ export default function VoiceControls({
         </button>
       </div>
 
-      <div className="mt-5 rounded-lg border border-slate-800/70 bg-slate-950/70 p-3">
+      <div className="mt-5 rounded-lg border border-cyan-400/10 bg-slate-950/70 p-3">
         <div className="flex h-12 items-end gap-1">
           {waveform.map((level, index) => (
             <span
