@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { useAvatarSpeechAnimation } from "../hooks/useAvatarSpeechAnimation";
+import type { AvatarState, LipSyncPlayback } from "../types/avatar";
 
 const modelUrl = new URL("../assets/avatars/hod.fbx", import.meta.url).toString();
 
@@ -21,8 +23,42 @@ type HeadshotConfig = {
 
 const fixedHeadshotTarget: [number, number, number] = [0, 5.6, 0];
 const fixedHeadshotDistance = 4.2;
+type AvatarSceneProps = {
+  avatarState: AvatarState;
+  lipSyncPlayback: LipSyncPlayback | null;
+};
+
+const fixedHeadshotTarget: [number, number, number] = [0, 1.6374, -0.05];
+const fixedHeadshotDistance = 1.25;
 const fixedHeadshotFov = 22;
 const fixedModelScale = 2.5;
+
+const avatarStateStyles: Record<AvatarState, { label: string; border: string; glow: string; dot: string }> = {
+  idle: {
+    label: "Idle",
+    border: "border-slate-800/60",
+    glow: "shadow-cyan-500/10",
+    dot: "bg-slate-500"
+  },
+  listening: {
+    label: "Listening",
+    border: "border-emerald-300/50",
+    glow: "shadow-emerald-400/20",
+    dot: "bg-emerald-300"
+  },
+  thinking: {
+    label: "Thinking",
+    border: "border-violet-300/50",
+    glow: "shadow-violet-400/20",
+    dot: "bg-violet-300"
+  },
+  speaking: {
+    label: "Speaking",
+    border: "border-cyan-200/70",
+    glow: "shadow-cyan-300/30",
+    dot: "bg-cyan-200"
+  }
+};
 
 function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   const { camera } = useThree();
@@ -42,10 +78,14 @@ function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   return null;
 }
 
-export default function AvatarScene() {
+export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarSceneProps) {
   const model = useFBX(modelUrl);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const morphTargetsRef = useRef<Record<string, MorphTargetInfo>>({});
+  const [headshotTarget, setHeadshotTarget] = useState<[number, number, number]>([0, 1.4, 0]);
+  const [headshotDistance, setHeadshotDistance] = useState(2.2);
+  const { availableBlendshapes, debugState } = useAvatarSpeechAnimation(model, avatarState, lipSyncPlayback);
+  const stateStyle = avatarStateStyles[avatarState];
 
   useEffect(() => {
     if (model.userData.__normalized) {
@@ -106,7 +146,6 @@ export default function AvatarScene() {
 
     model.userData.__normalized = true;
 
-    // Placeholder for future lip sync mapping from blendshape names to influences.
   }, [model]);
 
   useEffect(() => {
@@ -139,6 +178,45 @@ export default function AvatarScene() {
           camera={{ position: [0, 5.6, 4.2], fov: 22, near: 0.05, far: 100 }}
           gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
         >
+    <div
+      className={`relative h-full w-full overflow-hidden rounded-2xl border bg-slate-950/60 shadow-2xl transition duration-300 ${stateStyle.border} ${stateStyle.glow}`}
+    >
+      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-xs text-slate-200 backdrop-blur">
+        <span className="mr-2 inline-flex h-2.5 w-2.5 rounded-full">
+          <span className={`h-2.5 w-2.5 rounded-full ${stateStyle.dot} ${avatarState === "speaking" ? "animate-ping" : ""}`} />
+        </span>
+        Avatar {stateStyle.label}
+      </div>
+      <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-lg border border-slate-800/70 bg-slate-950/75 px-3 py-2 text-[11px] text-slate-400 backdrop-blur">
+        Morph targets: {availableBlendshapes.length}
+      </div>
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 w-56 rounded-lg border border-slate-800/70 bg-slate-950/75 p-3 text-[11px] text-slate-400 backdrop-blur">
+        <div className="mb-2 flex items-center justify-between text-slate-300">
+          <span>Lip Sync Debug</span>
+          <span>{debugState.isSpeaking ? "speaking" : "idle"}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <span>phoneme</span>
+          <span className="text-cyan-200">{debugState.currentPhoneme}</span>
+          <span>viseme</span>
+          <span className="text-cyan-200">{debugState.currentViseme}</span>
+          <span>time</span>
+          <span className="text-cyan-200">{debugState.currentTime.toFixed(2)}s</span>
+        </div>
+        <div className="mt-2 max-h-20 overflow-hidden border-t border-slate-800/80 pt-2">
+          {Object.entries(debugState.morphTargets).slice(0, 5).map(([name, value]) => (
+            <div key={name} className="flex justify-between gap-3">
+              <span>{name}</span>
+              <span className="text-slate-200">{value.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <Canvas
+        shadows
+        camera={{ position: [0, 1.4, 2.2], fov: 26, near: 0.05, far: 100 }}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+      >
         <Suspense
           fallback={
             <Html center className="text-sm text-slate-300">

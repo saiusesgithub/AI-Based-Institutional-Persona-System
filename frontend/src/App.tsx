@@ -29,6 +29,14 @@ export default function App() {
   const handleListeningChange = useCallback((isListening: boolean) => {
     setAssistantState(isListening ? "listening" : "idle");
   }, []);
+import { useState } from "react";
+import AssistantPanel from "./components/AssistantPanel";
+import AvatarScene from "./components/AvatarScene";
+import type { AvatarState, LipSyncPlayback } from "./types/avatar";
+
+export default function App() {
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+  const [lipSyncPlayback, setLipSyncPlayback] = useState<LipSyncPlayback | null>(null);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -74,6 +82,8 @@ export default function App() {
         <section className="flex min-w-0 flex-col gap-6">
           <div className="avatar-preview">
             <AvatarScene />
+          <div className="flex-1">
+            <AvatarScene avatarState={avatarState} lipSyncPlayback={lipSyncPlayback} />
           </div>
           <VoiceControls
             onTranscriptFinalized={handleTranscriptFinalized}
@@ -82,6 +92,11 @@ export default function App() {
           />
         </section>
       </motion.div>
+        <AssistantPanel
+          onAvatarStateChange={setAvatarState}
+          onLipSyncPlaybackChange={setLipSyncPlayback}
+        />
+      </div>
     </div>
   );
 }

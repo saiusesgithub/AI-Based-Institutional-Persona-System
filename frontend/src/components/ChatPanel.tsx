@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
+import type { AssistantState } from "../types/avatar";
 
 export type ChatMessage = {
   id: string;
@@ -11,7 +12,7 @@ export type ChatMessage = {
 type ChatPanelProps = {
   messages: ChatMessage[];
   liveTranscript: string;
-  assistantState: "idle" | "listening" | "thinking";
+  assistantState: AssistantState;
 };
 
 export default function ChatPanel({ messages, liveTranscript, assistantState }: ChatPanelProps) {
@@ -28,6 +29,18 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
 
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [timeline, liveTranscript, assistantState]);
+  const stateLabel =
+    assistantState === "listening"
+      ? "Listening"
+      : assistantState === "thinking"
+        ? "Thinking"
+        : assistantState === "generating-voice"
+          ? "Generating voice"
+          : assistantState === "processing-lipsync"
+            ? "Processing lip sync"
+          : assistantState === "speaking"
+            ? "Speaking"
+            : "Idle";
 
   return (
     <section className="glass-card border-cyan-400/15">
@@ -96,6 +109,23 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
               <span />
             </div>
           </motion.article>
+        ) : null}
+
+        {assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync" ? (
+          <article className="rounded-lg border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-violet-50">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-violet-200/70">
+              {assistantState === "thinking"
+                ? "Thinking"
+                : assistantState === "generating-voice"
+                  ? "Generating voice"
+                  : "Processing lip sync"}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200 [animation-delay:120ms]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200 [animation-delay:240ms]" />
+            </div>
+          </article>
         ) : null}
       </div>
     </section>
