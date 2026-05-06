@@ -34,7 +34,7 @@ export default function AssistantPanel() {
       initial={{ opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="flex h-full flex-col gap-4 rounded-2xl border border-cyan-400/20 bg-slate-950/70 p-5 shadow-[0_25px_80px_rgba(8,15,30,0.65)] backdrop-blur"
+      className="flex h-full flex-col gap-6 rounded-2xl border border-cyan-400/20 bg-slate-950/70 p-6 shadow-[0_25px_80px_rgba(8,15,30,0.65)] backdrop-blur lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto"
     >
       <div className="glass-card border-cyan-400/20">
         <div className="flex items-center justify-between">

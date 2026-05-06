@@ -8,6 +8,13 @@ html,
 body,
 #root {
   height: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -22,7 +29,7 @@ body {
   }
 
   .glass-card {
-    @apply rounded-xl border bg-slate-950/50 p-4 shadow-[0_20px_50px_rgba(8,15,30,0.45)] backdrop-blur;
+    @apply rounded-2xl border bg-slate-950/45 p-5 shadow-[0_18px_45px_rgba(8,15,30,0.38)] backdrop-blur;
   }
 }
 
@@ -51,6 +58,44 @@ body {
 .avatar-frame {
   box-shadow: inset 0 0 40px rgba(34, 211, 238, 0.12), 0 25px 80px rgba(5, 10, 25, 0.8);
 }
+
+.avatar-stage {
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.avatar-preview {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  height: min(72vh, 720px);
+  min-height: 560px;
+}
+
+@media (max-width: 1199px) {
+  .avatar-preview {
+    aspect-ratio: 3 / 4;
+    height: auto;
+    min-height: 480px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .avatar-stage {
+    padding: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .avatar-stage {
+    padding: 0;
+  }
+}
+
 
 .avatar-glow {
   background: radial-gradient(circle at 50% 35%, rgba(34, 211, 238, 0.25), transparent 60%),

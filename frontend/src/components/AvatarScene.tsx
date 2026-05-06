@@ -1,7 +1,7 @@
 import { Environment, Html, OrbitControls, useFBX } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { motion } from "framer-motion";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
@@ -19,18 +19,10 @@ type HeadshotConfig = {
   fov: number;
 };
 
-const fixedHeadshotTarget: [number, number, number] = [0, 1.6374, -0.05];
-const fixedHeadshotDistance = 1.25;
+const fixedHeadshotTarget: [number, number, number] = [0, 5.6, 0];
+const fixedHeadshotDistance = 4.2;
 const fixedHeadshotFov = 22;
-
-const relaxedArmPose = {
-  shoulderZ: 0.85,
-  upperArmZ: 1.85,
-  upperArmX: 0.15,
-  upperArmY: 0.2,
-  lowerArmZ: 0.55,
-  lowerArmX: 0.25
-};
+const fixedModelScale = 2.5;
 
 function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   const { camera } = useThree();
@@ -54,10 +46,12 @@ export default function AvatarScene() {
   const model = useFBX(modelUrl);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const morphTargetsRef = useRef<Record<string, MorphTargetInfo>>({});
-  const [headshotTarget, setHeadshotTarget] = useState<[number, number, number]>([0, 1.4, 0]);
-  const [headshotDistance, setHeadshotDistance] = useState(2.2);
 
   useEffect(() => {
+    if (model.userData.__normalized) {
+      return;
+    }
+
     const meshNames: string[] = [];
     const morphTargetMeshes: string[] = [];
     const posedBones: string[] = [];
@@ -67,7 +61,6 @@ export default function AvatarScene() {
       if ((node as THREE.Mesh).isMesh) {
         const mesh = node as THREE.Mesh;
         const meshName = mesh.name || mesh.uuid;
-
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
@@ -92,29 +85,7 @@ export default function AvatarScene() {
         const boneName = bone.name.toLowerCase();
         boneNames.push(bone.name);
 
-        const isLeft = boneName.includes("left") || boneName.includes("_l") || boneName.endsWith(".l");
-        const isRight = boneName.includes("right") || boneName.includes("_r") || boneName.endsWith(".r");
-        const isUpperArm = boneName.includes("upperarm") || boneName.includes("leftarm") || boneName.includes("rightarm") || boneName.includes("uparm");
-        const isLowerArm = boneName.includes("lowerarm") || boneName.includes("forearm") || boneName.includes("lowarm");
-        const isShoulder = boneName.includes("shoulder") || boneName.includes("clavicle") || boneName.includes("collar");
-
-        if (isShoulder && (isLeft || isRight)) {
-          bone.rotation.z += (isLeft ? -1 : 1) * relaxedArmPose.shoulderZ;
-          posedBones.push(bone.name);
-        }
-
-        if (isUpperArm && (isLeft || isRight)) {
-          bone.rotation.z += (isLeft ? -1 : 1) * relaxedArmPose.upperArmZ;
-          bone.rotation.x += relaxedArmPose.upperArmX;
-          bone.rotation.y += (isLeft ? 1 : -1) * relaxedArmPose.upperArmY;
-          posedBones.push(bone.name);
-        }
-
-        if (isLowerArm && (isLeft || isRight)) {
-          bone.rotation.z += (isLeft ? -1 : 1) * relaxedArmPose.lowerArmZ;
-          bone.rotation.x += relaxedArmPose.lowerArmX;
-          posedBones.push(bone.name);
-        }
+        posedBones.push(bone.name);
       }
     });
 
@@ -128,36 +99,12 @@ export default function AvatarScene() {
 
     console.log("[Avatar] Bone list:", boneNames);
 
-    if (posedBones.length > 0) {
-      console.log("[Avatar] Relaxed arm pose applied to bones:", posedBones);
-    }
+    model.visible = true;
+    model.position.set(0, 1.8, 0);
+    model.rotation.set(0, 0, 0);
+    model.scale.setScalar(fixedModelScale);
 
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-
-    if (size.y > 0) {
-      const desiredHeight = 1.7;
-      const scale = desiredHeight / size.y;
-      model.scale.setScalar(scale);
-    }
-
-    box.setFromObject(model);
-    center.copy(box.getCenter(new THREE.Vector3()));
-
-    model.position.sub(center);
-    model.position.y += box.getSize(new THREE.Vector3()).y / 2;
-
-    box.setFromObject(model);
-    const adjustedSize = box.getSize(new THREE.Vector3());
-    const headY = Math.max(adjustedSize.y * 0.82, 1.15);
-    const distance = THREE.MathUtils.clamp(adjustedSize.y * 0.55, 1.2, 2.4);
-
-    console.log("[Avatar] Size after scale:", adjustedSize);
-    console.log("[Avatar] Head target:", headY, "Camera distance:", distance);
-
-    setHeadshotTarget([0, headY, 0]);
-    setHeadshotDistance(distance);
+    model.userData.__normalized = true;
 
     // Placeholder for future lip sync mapping from blendshape names to influences.
   }, [model]);
@@ -177,19 +124,21 @@ export default function AvatarScene() {
 
   return (
     <motion.div
-      className="avatar-frame relative h-full w-full overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/70"
-      animate={{ y: [0, -6, 0], scale: [1, 1.01, 1] }}
+      className="avatar-frame relative h-full w-full overflow-hidden rounded-2xl border border-cyan-400/15 bg-slate-950/70"
+      animate={{ y: [0, -6, 0] }}
       transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
     >
       <div className="avatar-glow pointer-events-none absolute inset-0" />
       <div className="avatar-particles pointer-events-none absolute inset-0" />
       <div className="avatar-blink pointer-events-none absolute inset-0" />
 
-      <Canvas
-        shadows
-        camera={{ position: [0, 1.4, 2.2], fov: 26, near: 0.05, far: 100 }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
-      >
+      <div className="avatar-stage h-full w-full">
+        <Canvas
+          className="h-full w-full"
+          shadows
+          camera={{ position: [0, 5.6, 4.2], fov: 22, near: 0.05, far: 100 }}
+          gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+        >
         <Suspense
           fallback={
             <Html center className="text-sm text-slate-300">
@@ -202,11 +151,11 @@ export default function AvatarScene() {
             distance={fixedHeadshotDistance}
             fov={fixedHeadshotFov}
           />
-          <ambientLight intensity={0.55} />
+          <ambientLight intensity={1} />
           <directionalLight
             castShadow
-            position={[3, 5, 2]}
-            intensity={1.35}
+            position={[0, 2, 5]}
+            intensity={1.25}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
@@ -237,7 +186,8 @@ export default function AvatarScene() {
             maxAzimuthAngle={0}
           />
         </Suspense>
-      </Canvas>
+        </Canvas>
+      </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
       <div className="pointer-events-none absolute left-6 top-6 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-cyan-100/80">

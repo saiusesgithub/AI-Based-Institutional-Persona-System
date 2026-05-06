@@ -39,7 +39,7 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
       </div>
       <div
         ref={scrollRef}
-        className="mt-3 flex max-h-64 min-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-cyan-400/10 bg-slate-950/60 p-3 text-sm text-slate-300"
+        className="mt-3 flex max-h-96 min-h-56 flex-col gap-3 overflow-y-auto rounded-lg border border-cyan-400/10 bg-slate-950/60 p-4 text-sm text-slate-300"
       >
         {messages.length === 0 && !liveTranscript ? (
           <p className="text-slate-500">Voice transcripts will appear here as user messages.</p>
