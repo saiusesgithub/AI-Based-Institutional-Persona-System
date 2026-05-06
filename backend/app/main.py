@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.chat import router as chat_router
+from app.routes.tts import router as tts_router
+from app.services.elevenlabs_service import ElevenLabsService
 from app.services.gemini_service import GeminiService
 
 try:
@@ -37,7 +39,9 @@ app.add_middleware(
 )
 
 app.state.gemini_service = GeminiService()
+app.state.elevenlabs_service = ElevenLabsService()
 app.include_router(chat_router)
+app.include_router(tts_router)
 
 
 @app.get("/")

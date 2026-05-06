@@ -8,11 +8,20 @@ export type ChatMessage = {
 type ChatPanelProps = {
   messages: ChatMessage[];
   liveTranscript: string;
-  assistantState: "idle" | "listening" | "thinking";
+  assistantState: "idle" | "listening" | "thinking" | "generating-voice" | "speaking";
 };
 
 export default function ChatPanel({ messages, liveTranscript, assistantState }: ChatPanelProps) {
-  const stateLabel = assistantState === "listening" ? "Listening" : assistantState === "thinking" ? "Thinking" : "Idle";
+  const stateLabel =
+    assistantState === "listening"
+      ? "Listening"
+      : assistantState === "thinking"
+        ? "Thinking"
+        : assistantState === "generating-voice"
+          ? "Generating voice"
+          : assistantState === "speaking"
+            ? "Speaking"
+            : "Idle";
 
   return (
     <section className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-4">
@@ -56,10 +65,10 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
           </article>
         ) : null}
 
-        {assistantState === "thinking" ? (
+        {assistantState === "thinking" || assistantState === "generating-voice" ? (
           <article className="rounded-lg border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-violet-50">
             <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-violet-200/70">
-              Assistant
+              {assistantState === "thinking" ? "Thinking" : "Generating voice"}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200" />

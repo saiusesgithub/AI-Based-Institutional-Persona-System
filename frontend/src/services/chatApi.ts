@@ -9,7 +9,30 @@ type ChatApiResponse = {
   response: string;
 };
 
+type TTSApiRequest = {
+  text: string;
+  persona: PersonaId;
+};
+
+type TTSApiResponse = {
+  audio_url: string;
+  audio_base64: string;
+};
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+function getErrorMessage(errorBody: unknown, fallback: string) {
+  if (
+    typeof errorBody === "object" &&
+    errorBody !== null &&
+    "detail" in errorBody &&
+    typeof errorBody.detail === "string"
+  ) {
+    return errorBody.detail;
+  }
+
+  return fallback;
+}
 
 export async function sendChatMessage(payload: ChatApiRequest): Promise<ChatApiResponse> {
   const response = await fetch(`${apiBaseUrl}/chat`, {
@@ -22,9 +45,32 @@ export async function sendChatMessage(payload: ChatApiRequest): Promise<ChatApiR
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
-    const message = errorBody?.detail ?? "The AI service could not generate a response.";
+    const message = getErrorMessage(
+      errorBody,
+      response.status === 503
+        ? "The AI model is temporarily overloaded. Please try again in a moment."
+        : "The AI service could not generate a response."
+    );
     throw new Error(message);
   }
 
   return response.json() as Promise<ChatApiResponse>;
+}
+
+export async function generateSpeech(payload: TTSApiRequest): Promise<TTSApiResponse> {
+  const response = await fetch(`${apiBaseUrl}/tts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const message = getErrorMessage(errorBody, "The voice service could not generate audio.");
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<TTSApiResponse>;
 }

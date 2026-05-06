@@ -75,8 +75,18 @@ export function useSpeechRecognition(): SpeechRecognitionResult {
     };
 
     recognition.onerror = (event) => {
+      if (["network", "not-allowed", "service-not-allowed"].includes(event.error)) {
+        shouldListenRef.current = false;
+      }
+
       setStatus("error");
-      setError(event.error ? `Speech recognition error: ${event.error}` : "Speech recognition failed.");
+      setError(
+        event.error === "network"
+          ? "Browser speech recognition network service is unavailable. Use text input or try Chrome/Edge with network access."
+          : event.error
+            ? `Speech recognition error: ${event.error}`
+            : "Speech recognition failed."
+      );
     };
 
     recognition.onend = () => {

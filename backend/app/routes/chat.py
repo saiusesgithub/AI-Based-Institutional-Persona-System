@@ -25,16 +25,18 @@ async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
             detail=f"Unknown persona: {payload.persona}",
         ) from exc
     except GeminiConfigurationError as exc:
-        logger.exception("Gemini configuration error")
+        logger.error("Gemini configuration error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
     except GeminiServiceError as exc:
-        logger.exception("Gemini service error")
+        logger.error("Gemini service error: %s", exc)
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="AI response generation failed.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE
+            if exc.status_code in {429, 503}
+            else status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
         ) from exc
 
     return ChatResponse(response=response)

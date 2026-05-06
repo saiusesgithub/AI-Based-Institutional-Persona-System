@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import { useMicrophone } from "../hooks/useMicrophone";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 
@@ -14,9 +15,11 @@ export default function VoiceControls({
   onListeningChange
 }: VoiceControlsProps) {
   const [isLocked, setIsLocked] = useState(false);
-  const [isStopping, setIsStopping] = useState(false);
   const lastSubmittedTranscriptRef = useRef("");
   const transcriptRef = useRef("");
+  const activeSessionRef = useRef(false);
+  const hasSubmittedSessionRef = useRef(false);
+  const submitTimerRef = useRef<number | null>(null);
   const {
     status: microphoneStatus,
     error: microphoneError,
@@ -31,7 +34,6 @@ export default function VoiceControls({
   } = useMicrophone();
   const {
     transcript,
-    finalTranscript,
     status: speechStatus,
     error: speechError,
     isSupported: isSpeechSupported,
@@ -61,32 +63,25 @@ export default function VoiceControls({
   }, [isListening, onListeningChange]);
 
   useEffect(() => {
-    if (!isStopping || microphoneStatus !== "idle") {
-      return;
-    }
-
-    const transcriptForSubmission = (finalTranscript || transcriptRef.current).trim();
-
-    setIsStopping(false);
-
-    if (!transcriptForSubmission) {
-      resetTranscript();
-      return;
-    }
-
-    if (transcriptForSubmission === lastSubmittedTranscriptRef.current) {
-      resetTranscript();
-      return;
-    }
-
-    lastSubmittedTranscriptRef.current = transcriptForSubmission;
-    onTranscriptFinalized(transcriptForSubmission);
-    createUploadPayload(transcriptForSubmission);
-    resetTranscript();
-  }, [createUploadPayload, finalTranscript, isStopping, microphoneStatus, onTranscriptFinalized, resetTranscript]);
+    return () => {
+      if (submitTimerRef.current !== null) {
+        window.clearTimeout(submitTimerRef.current);
+      }
+    };
+  }, []);
 
   const startVoiceInput = () => {
-    setIsStopping(false);
+    if (activeSessionRef.current) {
+      return;
+    }
+
+    if (submitTimerRef.current !== null) {
+      window.clearTimeout(submitTimerRef.current);
+      submitTimerRef.current = null;
+    }
+
+    activeSessionRef.current = true;
+    hasSubmittedSessionRef.current = false;
     lastSubmittedTranscriptRef.current = "";
     transcriptRef.current = "";
     resetTranscript();
@@ -96,19 +91,53 @@ export default function VoiceControls({
     }
   };
 
-  const stopVoiceInput = () => {
-    if (isStopping) {
+  const submitStoppedTranscript = () => {
+    if (hasSubmittedSessionRef.current) {
       return;
     }
 
-    transcriptRef.current = (finalTranscript || visibleTranscript).trim();
-    setIsStopping(true);
+    const transcriptForSubmission = transcriptRef.current.trim();
+
+    hasSubmittedSessionRef.current = true;
+
+    if (!transcriptForSubmission || transcriptForSubmission === lastSubmittedTranscriptRef.current) {
+      resetTranscript();
+      onLiveTranscriptChange("");
+      return;
+    }
+
+    lastSubmittedTranscriptRef.current = transcriptForSubmission;
+    onTranscriptFinalized(transcriptForSubmission);
+    createUploadPayload(transcriptForSubmission);
+    resetTranscript();
+    onLiveTranscriptChange("");
+  };
+
+  const stopVoiceInput = () => {
+    if (!activeSessionRef.current) {
+      return;
+    }
+
+    transcriptRef.current = visibleTranscript.trim();
+    activeSessionRef.current = false;
     stopRecording();
     stopListening();
     setIsLocked(false);
+
+    if (submitTimerRef.current !== null) {
+      window.clearTimeout(submitTimerRef.current);
+    }
+
+    submitTimerRef.current = window.setTimeout(() => {
+      submitStoppedTranscript();
+      submitTimerRef.current = null;
+    }, 900);
   };
 
-  const handlePressStart = () => {
+  const handlePressStart = (event: PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
     if (isLocked || isUnavailable) {
       return;
     }
@@ -116,7 +145,9 @@ export default function VoiceControls({
     startVoiceInput();
   };
 
-  const handlePressEnd = () => {
+  const handlePressEnd = (event: PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+
     if (isLocked) {
       return;
     }
@@ -160,11 +191,9 @@ export default function VoiceControls({
           type="button"
           disabled={isUnavailable}
           aria-pressed={isListening}
-          onMouseDown={handlePressStart}
-          onMouseUp={handlePressEnd}
-          onMouseLeave={handlePressEnd}
-          onTouchStart={handlePressStart}
-          onTouchEnd={handlePressEnd}
+          onPointerDown={handlePressStart}
+          onPointerUp={handlePressEnd}
+          onPointerCancel={handlePressEnd}
           className={`group relative grid h-36 w-36 place-items-center rounded-full border text-sm font-semibold transition duration-300 ${
             isListening
               ? "border-emerald-200/80 bg-emerald-300 text-emerald-950 shadow-[0_0_60px_rgba(52,211,153,0.45)]"
