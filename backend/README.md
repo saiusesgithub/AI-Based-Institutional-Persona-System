@@ -20,6 +20,7 @@ macOS or Linux activation:
 
 - GET /health
 - POST /chat
+- POST /chat/stream
 - POST /tts
 - POST /lipsync
 
@@ -56,6 +57,35 @@ FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
 Personas are configured in `app/personas.json`. The chat route loads the selected persona and builds a system prompt before calling Gemini.
+
+## Edge TTS setup
+
+### POST /chat/stream
+
+Streams Gemini response chunks as server-sent events. The frontend progressively renders
+`token` events, then uses the accumulated final text for TTS and lip sync.
+
+Request:
+
+```json
+{
+  "message": "Can you explain the admission process?",
+  "persona": "reception-assistant"
+}
+```
+
+Events:
+
+```text
+event: token
+data: {"text":"Admissions "}
+
+event: done
+data: {}
+```
+
+If the client aborts the request, FastAPI stops relaying the stream. Audio generation is
+still performed only after the full streamed response completes.
 
 ## Edge TTS setup
 

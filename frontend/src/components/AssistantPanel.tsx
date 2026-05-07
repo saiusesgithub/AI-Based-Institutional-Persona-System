@@ -5,7 +5,7 @@ import type { ChatMessage } from "./ChatPanel";
 import PersonaSelector from "./PersonaSelector";
 import VoiceControls from "./VoiceControls";
 import { audioUrlToWavBase64 } from "../services/audioService";
-import { generateLipSync, generateSpeech, sendChatMessage } from "../services/chatApi";
+import { generateLipSync, generateSpeech, streamChatMessage } from "../services/chatApi";
 import type { PersonaId } from "../services/chatApi";
 import type { AssistantState, AvatarState, LipSyncPlayback, PhonemeCue } from "../types/avatar";
 
@@ -15,7 +15,9 @@ type AssistantPanelProps = {
 };
 
 function mapAssistantToAvatarState(state: AssistantState): AvatarState {
-  return state === "generating-voice" || state === "processing-lipsync" ? "thinking" : state;
+  return state === "streaming" || state === "generating-audio" || state === "processing-lipsync"
+    ? "thinking"
+    : state;
 }
 
 export default function AssistantPanel({
@@ -32,6 +34,7 @@ export default function AssistantPanel({
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lipSyncCues, setLipSyncCues] = useState<PhonemeCue[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     onAvatarStateChange(mapAssistantToAvatarState(assistantState));
@@ -65,6 +68,9 @@ export default function AssistantPanel({
   }, [isMuted, lipSyncCues, onLipSyncPlaybackChange]);
 
   const stopAudio = useCallback(() => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+
     const audio = audioRef.current;
 
     if (audio) {
@@ -72,6 +78,13 @@ export default function AssistantPanel({
       audio.currentTime = 0;
     }
 
+    onLipSyncPlaybackChange(null);
+    setAssistantState("idle");
+  }, [onLipSyncPlaybackChange]);
+
+  const cancelResponse = useCallback(() => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
     onLipSyncPlaybackChange(null);
     setAssistantState("idle");
   }, [onLipSyncPlaybackChange]);
@@ -106,27 +119,61 @@ export default function AssistantPanel({
     setVoiceError(null);
     setLipSyncCues([]);
     onLipSyncPlaybackChange(null);
-    setAssistantState("thinking");
+    setAssistantState("streaming");
 
     let responseText = "";
+    const assistantMessageId = crypto.randomUUID();
+    const streamAbortController = new AbortController();
+    streamAbortRef.current = streamAbortController;
 
     try {
-      const { response } = await sendChatMessage({
-        message: transcript,
-        persona: selectedPersona
-      });
-      responseText = response;
-
       setMessages((current) => [
         ...current,
         {
-          id: crypto.randomUUID(),
+          id: assistantMessageId,
           role: "assistant",
-          text: response,
+          text: "",
           createdAt: new Date()
         }
       ]);
+
+      responseText = await streamChatMessage(
+        {
+          message: transcript,
+          persona: selectedPersona
+        },
+        {
+          signal: streamAbortController.signal,
+          onToken: (token) => {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === assistantMessageId
+                  ? { ...message, text: `${message.text}${token}` }
+                  : message
+              )
+            );
+          }
+        }
+      );
+
+      streamAbortRef.current = null;
+
+      if (streamAbortController.signal.aborted) {
+        setAssistantState("idle");
+        return;
+      }
+
+      if (!responseText) {
+        throw new Error("The AI stream ended without a response.");
+      }
     } catch (error) {
+      streamAbortRef.current = null;
+
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setAssistantState("idle");
+        return;
+      }
+
       const message = error instanceof Error ? error.message : "Unable to reach the AI service.";
 
       setMessages((current) => [
@@ -142,7 +189,7 @@ export default function AssistantPanel({
       return;
     }
 
-    setAssistantState("generating-voice");
+    setAssistantState("generating-audio");
 
     try {
       const voice = await generateSpeech({
@@ -229,7 +276,7 @@ export default function AssistantPanel({
             className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
               assistantState === "listening"
                 ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
-                : assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync"
+                : assistantState === "thinking" || assistantState === "streaming" || assistantState === "generating-audio" || assistantState === "processing-lipsync"
                   ? "border-violet-300/50 bg-violet-300/10 text-violet-200"
                   : assistantState === "speaking"
                     ? "border-cyan-200/60 bg-cyan-200/10 text-cyan-100"
@@ -249,6 +296,15 @@ export default function AssistantPanel({
         liveTranscript={liveTranscript}
         assistantState={assistantState}
       />
+      {assistantState === "streaming" ? (
+        <button
+          type="button"
+          onClick={cancelResponse}
+          className="rounded-md border border-rose-300/50 px-3 py-2 text-xs uppercase tracking-[0.14em] text-rose-100 transition hover:bg-rose-300/10"
+        >
+          Interrupt response
+        </button>
+      ) : null}
       <section className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-4">
         <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
           Text Input
@@ -345,7 +401,7 @@ export default function AssistantPanel({
         onListeningChange={handleListeningChange}
       />
       <div className="mt-auto rounded-lg border border-dashed border-slate-700/70 p-3 text-xs text-slate-400">
-        System status: responses are routed through Gemini, Edge TTS, and Rhubarb lip sync.
+        System status: Gemini streams text first, then Edge TTS and Rhubarb prepare synchronized audio.
       </div>
     </aside>
   );
