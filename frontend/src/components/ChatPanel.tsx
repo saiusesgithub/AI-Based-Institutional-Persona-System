@@ -36,8 +36,6 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
         ? "Thinking"
         : assistantState === "generating-voice"
           ? "Generating voice"
-          : assistantState === "processing-lipsync"
-            ? "Processing lip sync"
           : assistantState === "speaking"
             ? "Speaking"
             : "Idle";
@@ -111,14 +109,10 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
           </motion.article>
         ) : null}
 
-        {assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync" ? (
+        {assistantState === "thinking" || assistantState === "generating-voice" ? (
           <article className="rounded-lg border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-violet-50">
             <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-violet-200/70">
-              {assistantState === "thinking"
-                ? "Thinking"
-                : assistantState === "generating-voice"
-                  ? "Generating voice"
-                  : "Processing lip sync"}
+              {assistantState === "thinking" ? "Thinking" : "Generating voice"}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 animate-bounce rounded-full bg-violet-200" />

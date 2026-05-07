@@ -18,8 +18,7 @@ type TTSApiRequest = {
 
 type TTSApiResponse = {
   audio_url: string;
-  audio_base64: string | null;
-  duration_seconds: number | null;
+  audio_base64: string;
 };
 
 type LipSyncApiRequest = {

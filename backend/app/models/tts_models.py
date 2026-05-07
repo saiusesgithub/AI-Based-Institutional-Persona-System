@@ -10,5 +10,4 @@ class TTSRequest(BaseModel):
 
 class TTSResponse(BaseModel):
     audio_url: str
-    audio_base64: str | None = None
-    duration_seconds: float | None = None
+    audio_base64: str
