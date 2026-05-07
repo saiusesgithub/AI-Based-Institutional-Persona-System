@@ -19,13 +19,15 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
       ? "Listening"
       : assistantState === "thinking"
         ? "Thinking"
-        : assistantState === "generating-voice"
-          ? "Generating voice"
-          : assistantState === "processing-lipsync"
-            ? "Processing lip sync"
-          : assistantState === "speaking"
-            ? "Speaking"
-            : "Idle";
+        : assistantState === "streaming"
+          ? "Streaming"
+          : assistantState === "generating-audio"
+            ? "Generating audio"
+            : assistantState === "processing-lipsync"
+              ? "Processing lip sync"
+              : assistantState === "speaking"
+                ? "Speaking"
+                : "Idle";
 
   return (
     <section className="flex min-h-0 flex-col rounded-[24px] border border-slate-800/70 bg-slate-900/35 p-3">
@@ -59,7 +61,12 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
               <span>{message.role}</span>
               <time>{message.createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>
             </div>
-            <p>{message.text}</p>
+            <p>
+              {message.text}
+              {message.role === "assistant" && assistantState === "streaming" ? (
+                <span className="ml-1 inline-block h-4 w-1 animate-pulse rounded-full bg-cyan-200 align-middle" />
+              ) : null}
+            </p>
           </article>
         ))}
 
@@ -78,11 +85,19 @@ export default function ChatPanel({ messages, liveTranscript, assistantState }: 
         {assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync" ? (
           <article className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2.5 text-cyan-50">
             <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-cyan-200/70">
+        {assistantState === "thinking" ||
+        assistantState === "streaming" ||
+        assistantState === "generating-audio" ||
+        assistantState === "processing-lipsync" ? (
+          <article className="rounded-lg border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-violet-50">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-violet-200/70">
               {assistantState === "thinking"
                 ? "Thinking"
-                : assistantState === "generating-voice"
-                  ? "Generating voice"
-                  : "Processing lip sync"}
+                : assistantState === "streaming"
+                  ? "Streaming response"
+                  : assistantState === "generating-audio"
+                    ? "Generating audio"
+                    : "Processing lip sync"}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-200" />

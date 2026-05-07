@@ -1,6 +1,10 @@
 export type AvatarState = "idle" | "listening" | "thinking" | "speaking";
 
-export type AssistantState = AvatarState | "generating-voice" | "processing-lipsync";
+export type AssistantState =
+  | AvatarState
+  | "streaming"
+  | "generating-audio"
+  | "processing-lipsync";
 
 export type RhubarbPhoneme = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "X";
 

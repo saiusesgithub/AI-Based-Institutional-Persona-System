@@ -1,9 +1,9 @@
-import json
-import logging
 import os
 import asyncio
+import json
+import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncGenerator
 
 import httpx
 
@@ -43,28 +43,11 @@ class GeminiService:
         if not self.api_key:
             raise GeminiConfigurationError("GEMINI_API_KEY is not configured.")
 
-        persona = self.personas[persona_key]
-        system_prompt = self._build_system_prompt(persona)
         endpoint = (
             "https://generativelanguage.googleapis.com/v1beta/"
             f"models/{self.model}:generateContent"
         )
-        payload = {
-            "systemInstruction": {
-                "parts": [{"text": system_prompt}]
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": message}]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.45,
-                "topP": 0.9,
-                "maxOutputTokens": 320
-            }
-        }
+        payload = self._build_payload(message, persona_key)
 
         logger.info("Generating Gemini response for persona=%s", persona_key)
 
@@ -72,6 +55,50 @@ class GeminiService:
             response = await self._post_with_retries(client, endpoint, payload)
 
         return self._extract_text(response.json())
+
+    async def stream_response(
+        self,
+        message: str,
+        persona_key: str,
+    ) -> AsyncGenerator[str, None]:
+        if not self.api_key:
+            raise GeminiConfigurationError("GEMINI_API_KEY is not configured.")
+
+        endpoint = (
+            "https://generativelanguage.googleapis.com/v1beta/"
+            f"models/{self.model}:streamGenerateContent?alt=sse"
+        )
+        payload = self._build_payload(message, persona_key)
+
+        logger.info("Streaming Gemini response for persona=%s", persona_key)
+
+        async with httpx.AsyncClient(timeout=None) as client:
+            try:
+                async with client.stream(
+                    "POST",
+                    endpoint,
+                    headers={
+                        "x-goog-api-key": self.api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                ) as response:
+                    response.raise_for_status()
+
+                    async for line in response.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+
+                        chunk = self._extract_stream_chunk(line.removeprefix("data:").strip())
+
+                        if chunk:
+                            yield chunk
+            except httpx.HTTPStatusError as exc:
+                detail = self._extract_error_detail(exc.response)
+                logger.warning("Gemini stream HTTP %s: %s", exc.response.status_code, detail)
+                raise GeminiServiceError(detail, exc.response.status_code) from exc
+            except httpx.HTTPError as exc:
+                raise GeminiServiceError("Unable to stream from Gemini API.") from exc
 
     async def _post_with_retries(
         self,
@@ -135,6 +162,27 @@ class GeminiService:
             "Do not claim to perform real administrative actions unless a backend tool exists."
         )
 
+    def _build_payload(self, message: str, persona_key: str) -> dict[str, Any]:
+        persona = self.personas[persona_key]
+        system_prompt = self._build_system_prompt(persona)
+
+        return {
+            "systemInstruction": {
+                "parts": [{"text": system_prompt}]
+            },
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": message}]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.45,
+                "topP": 0.9,
+                "maxOutputTokens": 320
+            }
+        }
+
     def _extract_text(self, payload: dict[str, Any]) -> str:
         try:
             parts = payload["candidates"][0]["content"]["parts"]
@@ -148,6 +196,19 @@ class GeminiService:
             raise GeminiServiceError("Gemini returned an empty response.")
 
         return text
+
+    def _extract_stream_chunk(self, data: str) -> str:
+        if not data or data == "[DONE]":
+            return ""
+
+        try:
+            payload = json.loads(data)
+            parts = payload["candidates"][0]["content"].get("parts", [])
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+            logger.debug("Skipping unexpected Gemini stream payload: %s", data)
+            return ""
+
+        return "".join(part.get("text", "") for part in parts if isinstance(part, dict))
 
     def _extract_error_detail(self, response: httpx.Response) -> str:
         try:
