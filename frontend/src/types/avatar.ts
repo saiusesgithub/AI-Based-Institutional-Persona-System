@@ -1,5 +1,7 @@
 export type AvatarState = "idle" | "listening" | "thinking" | "speaking";
 
+export type AvatarEmotion = "neutral" | "greeting" | "happy" | "question";
+
 export type AssistantState =
   | AvatarState
   | "streaming"
@@ -29,4 +31,6 @@ export type LipSyncDebugState = {
   currentViseme: string;
   morphTargets: Record<string, number>;
   isSpeaking: boolean;
+  emotion: AvatarEmotion;
+  activeLayers: string[];
 };

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import AssistantPanel from "./components/AssistantPanel";
 import AvatarScene from "./components/AvatarScene";
-import type { AvatarState, LipSyncPlayback } from "./types/avatar";
+import type { AvatarEmotion, AvatarState, LipSyncPlayback } from "./types/avatar";
 
 export default function App() {
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+  const [avatarEmotion, setAvatarEmotion] = useState<AvatarEmotion>("neutral");
   const [lipSyncPlayback, setLipSyncPlayback] = useState<LipSyncPlayback | null>(null);
 
   return (
@@ -21,11 +22,16 @@ export default function App() {
             </p>
           </header>
           <div className="flex-1">
-            <AvatarScene avatarState={avatarState} lipSyncPlayback={lipSyncPlayback} />
+            <AvatarScene
+              avatarState={avatarState}
+              emotion={avatarEmotion}
+              lipSyncPlayback={lipSyncPlayback}
+            />
           </div>
         </section>
         <AssistantPanel
           onAvatarStateChange={setAvatarState}
+          onAvatarEmotionChange={setAvatarEmotion}
           onLipSyncPlaybackChange={setLipSyncPlayback}
         />
       </div>

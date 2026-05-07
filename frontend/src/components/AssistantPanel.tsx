@@ -7,10 +7,17 @@ import VoiceControls from "./VoiceControls";
 import { audioUrlToWavBase64 } from "../services/audioService";
 import { generateLipSync, generateSpeech, streamChatMessage } from "../services/chatApi";
 import type { PersonaId } from "../services/chatApi";
-import type { AssistantState, AvatarState, LipSyncPlayback, PhonemeCue } from "../types/avatar";
+import type {
+  AssistantState,
+  AvatarEmotion,
+  AvatarState,
+  LipSyncPlayback,
+  PhonemeCue
+} from "../types/avatar";
 
 type AssistantPanelProps = {
   onAvatarStateChange: (state: AvatarState) => void;
+  onAvatarEmotionChange: (emotion: AvatarEmotion) => void;
   onLipSyncPlaybackChange: (playback: LipSyncPlayback | null) => void;
 };
 
@@ -20,8 +27,27 @@ function mapAssistantToAvatarState(state: AssistantState): AvatarState {
     : state;
 }
 
+function detectEmotion(text: string): AvatarEmotion {
+  const normalized = text.toLowerCase();
+
+  if (/\b(hello|hi|hey|welcome|good morning|good afternoon|greetings)\b/.test(normalized)) {
+    return "greeting";
+  }
+
+  if (/[?]\s*$/.test(text) || /\b(why|what|how|when|where|which|can you|could you)\b/.test(normalized)) {
+    return "question";
+  }
+
+  if (/\b(great|happy|glad|excellent|congratulations|wonderful|pleased)\b/.test(normalized)) {
+    return "happy";
+  }
+
+  return "neutral";
+}
+
 export default function AssistantPanel({
   onAvatarStateChange,
+  onAvatarEmotionChange,
   onLipSyncPlaybackChange
 }: AssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -80,14 +106,16 @@ export default function AssistantPanel({
 
     onLipSyncPlaybackChange(null);
     setAssistantState("idle");
-  }, [onLipSyncPlaybackChange]);
+    onAvatarEmotionChange("neutral");
+  }, [onAvatarEmotionChange, onLipSyncPlaybackChange]);
 
   const cancelResponse = useCallback(() => {
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
     onLipSyncPlaybackChange(null);
     setAssistantState("idle");
-  }, [onLipSyncPlaybackChange]);
+    onAvatarEmotionChange("neutral");
+  }, [onAvatarEmotionChange, onLipSyncPlaybackChange]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((current) => {
@@ -97,11 +125,12 @@ export default function AssistantPanel({
         audioRef.current?.pause();
         onLipSyncPlaybackChange(null);
         setAssistantState("idle");
+        onAvatarEmotionChange("neutral");
       }
 
       return nextMuted;
     });
-  }, [onLipSyncPlaybackChange]);
+  }, [onAvatarEmotionChange, onLipSyncPlaybackChange]);
 
   const handleTranscriptFinalized = useCallback(async (transcript: string) => {
     const userMessage: ChatMessage = {
@@ -119,6 +148,7 @@ export default function AssistantPanel({
     setVoiceError(null);
     setLipSyncCues([]);
     onLipSyncPlaybackChange(null);
+    onAvatarEmotionChange(detectEmotion(transcript));
     setAssistantState("streaming");
 
     let responseText = "";
@@ -166,6 +196,8 @@ export default function AssistantPanel({
       if (!responseText) {
         throw new Error("The AI stream ended without a response.");
       }
+
+      onAvatarEmotionChange(detectEmotion(responseText));
     } catch (error) {
       streamAbortRef.current = null;
 
@@ -242,7 +274,7 @@ export default function AssistantPanel({
       onLipSyncPlaybackChange(null);
       setAssistantState("idle");
     }
-  }, [isMuted, onLipSyncPlaybackChange, selectedPersona]);
+  }, [isMuted, onAvatarEmotionChange, onLipSyncPlaybackChange, selectedPersona]);
 
   const handleListeningChange = useCallback((isListening: boolean) => {
     setAssistantState((current) => {
@@ -355,6 +387,7 @@ export default function AssistantPanel({
           onEnded={() => {
             setAssistantState("idle");
             onLipSyncPlaybackChange(null);
+            onAvatarEmotionChange("neutral");
           }}
           onPause={() => {
             setAssistantState((current) => (current === "speaking" ? "idle" : current));

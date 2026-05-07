@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useAvatarSpeechAnimation } from "../hooks/useAvatarSpeechAnimation";
-import type { AvatarState, LipSyncPlayback } from "../types/avatar";
+import type { AvatarEmotion, AvatarState, LipSyncPlayback } from "../types/avatar";
 
 const modelUrl = new URL("../assets/avatars/hod.fbx", import.meta.url).toString();
 
@@ -22,6 +22,7 @@ type HeadshotConfig = {
 
 type AvatarSceneProps = {
   avatarState: AvatarState;
+  emotion: AvatarEmotion;
   lipSyncPlayback: LipSyncPlayback | null;
 };
 
@@ -83,13 +84,18 @@ function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
   return null;
 }
 
-export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarSceneProps) {
+export default function AvatarScene({ avatarState, emotion, lipSyncPlayback }: AvatarSceneProps) {
   const model = useFBX(modelUrl);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const morphTargetsRef = useRef<Record<string, MorphTargetInfo>>({});
   const [headshotTarget, setHeadshotTarget] = useState<[number, number, number]>([0, 1.4, 0]);
   const [headshotDistance, setHeadshotDistance] = useState(2.2);
-  const { availableBlendshapes, debugState } = useAvatarSpeechAnimation(model, avatarState, lipSyncPlayback);
+  const { availableBlendshapes, debugState } = useAvatarSpeechAnimation(
+    model,
+    avatarState,
+    lipSyncPlayback,
+    emotion
+  );
   const stateStyle = avatarStateStyles[avatarState];
 
   useEffect(() => {
@@ -234,6 +240,11 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
           <span className="text-cyan-200">{debugState.currentViseme}</span>
           <span>time</span>
           <span className="text-cyan-200">{debugState.currentTime.toFixed(2)}s</span>
+          <span>emotion</span>
+          <span className="text-cyan-200">{debugState.emotion}</span>
+        </div>
+        <div className="mt-2 border-t border-slate-800/80 pt-2 text-slate-500">
+          layers: {debugState.activeLayers.join(", ")}
         </div>
         <div className="mt-2 max-h-20 overflow-hidden border-t border-slate-800/80 pt-2">
           {Object.entries(debugState.morphTargets).slice(0, 5).map(([name, value]) => (
@@ -299,4 +310,3 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
     </div>
   );
 }
-
