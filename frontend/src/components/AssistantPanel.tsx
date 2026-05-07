@@ -221,131 +221,149 @@ export default function AssistantPanel({
   }, [assistantState, handleTranscriptFinalized, textInput]);
 
   return (
-    <aside className="flex h-full flex-col gap-4 rounded-2xl border border-slate-800/60 bg-slate-950/70 p-5 shadow-2xl shadow-cyan-500/10 backdrop-blur">
-      <div>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-100">AI Assistant</h2>
-          <span
-            className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
-              assistantState === "listening"
-                ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
-                : assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync"
-                  ? "border-violet-300/50 bg-violet-300/10 text-violet-200"
-                  : assistantState === "speaking"
-                    ? "border-cyan-200/60 bg-cyan-200/10 text-cyan-100"
-                  : "border-cyan-400/40 bg-cyan-400/10 text-cyan-200"
-            }`}
-          >
-            {assistantState}
-          </span>
-        </div>
-        <p className="mt-2 text-xs text-slate-400">
-          Push-to-talk voice input with realtime transcript capture.
-        </p>
-      </div>
-      <PersonaSelector value={selectedPersona} onChange={setSelectedPersona} />
-      <ChatPanel
-        messages={messages}
-        liveTranscript={liveTranscript}
-        assistantState={assistantState}
-      />
-      <section className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
-          Text Input
-        </h2>
-        <form onSubmit={handleTextSubmit} className="mt-3 flex gap-2">
-          <input
-            value={textInput}
-            onChange={(event) => setTextInput(event.target.value)}
-            disabled={assistantState !== "idle"}
-            placeholder="Type when browser speech recognition is unavailable"
-            className="min-w-0 flex-1 rounded-md border border-slate-700/80 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 disabled:cursor-not-allowed disabled:text-slate-600"
+    <aside className="flex h-full min-h-0 flex-col gap-2 rounded-[28px] border border-slate-800/60 bg-slate-950/72 p-2.25 shadow-[0_25px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-2.5">
+      <div className="grid min-h-0 gap-2 xl:grid-cols-2">
+        <div className="flex min-h-0 flex-col gap-2">
+          <div className="rounded-[24px] border border-slate-800/70 bg-slate-900/35 p-2.25">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-[0.95rem] font-semibold text-slate-100">AI Assistant</h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Push-to-talk voice input with realtime transcript capture.
+                </p>
+              </div>
+              <span
+                className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${
+                  assistantState === "listening"
+                    ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
+                    : assistantState === "thinking" || assistantState === "generating-voice" || assistantState === "processing-lipsync"
+                      ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
+                      : assistantState === "speaking"
+                        ? "border-cyan-200/60 bg-cyan-200/10 text-cyan-100"
+                        : "border-slate-700/70 bg-slate-900/70 text-slate-300"
+                }`}
+              >
+                {assistantState}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-400">
+              <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-3 py-1.5">Live chat</span>
+              <span className="rounded-full border border-emerald-300/15 bg-emerald-300/8 px-3 py-1.5">Voice transcript</span>
+              <span className="rounded-full border border-slate-700/70 bg-slate-950/60 px-3 py-1.5">Response cards</span>
+            </div>
+          </div>
+
+          <ChatPanel
+            messages={messages}
+            liveTranscript={liveTranscript}
+            assistantState={assistantState}
           />
-          <button
-            type="submit"
-            disabled={!textInput.trim() || assistantState !== "idle"}
-            className="rounded-md border border-cyan-300/40 px-3 py-2 text-xs uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600"
-          >
-            Send
-          </button>
-        </form>
-      </section>
-      <section className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
-            Voice Output
-          </h2>
-          <span className="text-xs text-slate-500">
-            {lastAudioUrl ? "Ready" : "No audio"}
-          </span>
+
+          <section className="rounded-[24px] border border-slate-800/70 bg-slate-900/35 p-2">
+            <h2 className="text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
+              Text Input
+            </h2>
+            <form onSubmit={handleTextSubmit} className="mt-1.5 flex gap-2">
+              <input
+                value={textInput}
+                onChange={(event) => setTextInput(event.target.value)}
+                disabled={assistantState !== "idle"}
+                placeholder="Type when browser speech recognition is unavailable"
+                className="min-w-0 flex-1 rounded-xl border border-slate-700/80 bg-slate-950 px-3 py-1.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 disabled:cursor-not-allowed disabled:text-slate-600"
+              />
+              <button
+                type="submit"
+                disabled={!textInput.trim() || assistantState !== "idle"}
+                className="rounded-xl border border-cyan-300/40 px-3.5 py-1.5 text-xs uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600"
+              >
+                Send
+              </button>
+            </form>
+          </section>
         </div>
-        <audio
-          ref={audioRef}
-          src={lastAudioUrl ?? undefined}
-          muted={isMuted}
-          onPlay={() => {
-            setAssistantState("speaking");
-            onLipSyncPlaybackChange(
-              lipSyncCues.length
-                ? {
-                    id: crypto.randomUUID(),
-                    phonemes: lipSyncCues,
-                    startedAtMs: performance.now(),
-                    offsetSeconds: audioRef.current?.currentTime ?? 0
-                  }
-                : null
-            );
-          }}
-          onEnded={() => {
-            setAssistantState("idle");
-            onLipSyncPlaybackChange(null);
-          }}
-          onPause={() => {
-            setAssistantState((current) => (current === "speaking" ? "idle" : current));
-            onLipSyncPlaybackChange(null);
-          }}
-          className="mt-3 hidden"
-        />
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={playAudio}
-            disabled={!lastAudioUrl}
-            className="rounded-md border border-cyan-300/40 px-3 py-2 text-xs uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600"
-          >
-            Replay
-          </button>
-          <button
-            type="button"
-            onClick={stopAudio}
-            disabled={!lastAudioUrl}
-            className="rounded-md border border-slate-700/80 px-3 py-2 text-xs uppercase tracking-[0.14em] text-slate-300 transition hover:border-rose-300/70 hover:text-rose-100 disabled:cursor-not-allowed disabled:text-slate-600"
-          >
-            Stop
-          </button>
-          <button
-            type="button"
-            onClick={toggleMute}
-            className={`rounded-md border px-3 py-2 text-xs uppercase tracking-[0.14em] transition ${
-              isMuted
-                ? "border-amber-300/60 text-amber-100"
-                : "border-slate-700/80 text-slate-300 hover:border-cyan-300/70 hover:text-cyan-100"
-            }`}
-          >
-            {isMuted ? "Muted" : "Mute"}
-          </button>
+
+        <div className="flex min-h-0 flex-col gap-2">
+          <PersonaSelector value={selectedPersona} onChange={setSelectedPersona} />
+          <section className="rounded-[24px] border border-slate-800/70 bg-slate-900/35 p-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
+                Voice Output
+              </h2>
+              <span className="text-xs text-slate-500">
+                {lastAudioUrl ? "Ready" : "No audio"}
+              </span>
+            </div>
+            <audio
+              ref={audioRef}
+              src={lastAudioUrl ?? undefined}
+              muted={isMuted}
+              onPlay={() => {
+                setAssistantState("speaking");
+                onLipSyncPlaybackChange(
+                  lipSyncCues.length
+                    ? {
+                        id: crypto.randomUUID(),
+                        phonemes: lipSyncCues,
+                        startedAtMs: performance.now(),
+                        offsetSeconds: audioRef.current?.currentTime ?? 0
+                      }
+                    : null
+                );
+              }}
+              onEnded={() => {
+                setAssistantState("idle");
+                onLipSyncPlaybackChange(null);
+              }}
+              onPause={() => {
+                setAssistantState((current) => (current === "speaking" ? "idle" : current));
+                onLipSyncPlaybackChange(null);
+              }}
+              className="mt-3 hidden"
+            />
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={playAudio}
+                disabled={!lastAudioUrl}
+                className="rounded-xl border border-cyan-300/40 px-3 py-2 text-xs uppercase tracking-[0.14em] text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:border-slate-700 disabled:text-slate-600"
+              >
+                Replay
+              </button>
+              <button
+                type="button"
+                onClick={stopAudio}
+                disabled={!lastAudioUrl}
+                className="rounded-xl border border-slate-700/80 px-3 py-2 text-xs uppercase tracking-[0.14em] text-slate-300 transition hover:border-rose-300/70 hover:text-rose-100 disabled:cursor-not-allowed disabled:text-slate-600"
+              >
+                Stop
+              </button>
+              <button
+                type="button"
+                onClick={toggleMute}
+                className={`rounded-xl border px-3 py-2 text-xs uppercase tracking-[0.14em] transition ${
+                  isMuted
+                    ? "border-amber-300/60 text-amber-100"
+                    : "border-slate-700/80 text-slate-300 hover:border-cyan-300/70 hover:text-cyan-100"
+                }`}
+              >
+                {isMuted ? "Muted" : "Mute"}
+              </button>
+            </div>
+            {voiceError ? (
+              <p className="mt-3 text-xs text-amber-200">{voiceError}</p>
+            ) : null}
+          </section>
+
+          <VoiceControls
+            onTranscriptFinalized={handleTranscriptFinalized}
+            onLiveTranscriptChange={setLiveTranscript}
+            onListeningChange={handleListeningChange}
+          />
+
+          <div className="mt-auto rounded-[24px] border border-dashed border-slate-700/70 bg-slate-950/35 p-2 text-xs text-slate-400">
+            System status: responses are routed through Gemini, Edge TTS, and Rhubarb lip sync.
+          </div>
         </div>
-        {voiceError ? (
-          <p className="mt-3 text-xs text-amber-200">{voiceError}</p>
-        ) : null}
-      </section>
-      <VoiceControls
-        onTranscriptFinalized={handleTranscriptFinalized}
-        onLiveTranscriptChange={setLiveTranscript}
-        onListeningChange={handleListeningChange}
-      />
-      <div className="mt-auto rounded-lg border border-dashed border-slate-700/70 p-3 text-xs text-slate-400">
-        System status: responses are routed through Gemini, Edge TTS, and Rhubarb lip sync.
       </div>
     </aside>
   );

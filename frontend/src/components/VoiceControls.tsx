@@ -60,11 +60,7 @@ export default function VoiceControls({
   }, [onLiveTranscriptChange, visibleTranscript]);
 
   useEffect(() => {
-    if (
-      activeSessionRef.current ||
-      hasSubmittedSessionRef.current ||
-      !visibleTranscript.trim()
-    ) {
+    if (activeSessionRef.current || hasSubmittedSessionRef.current || !visibleTranscript.trim()) {
       return;
     }
 
@@ -207,13 +203,13 @@ export default function VoiceControls({
   };
 
   return (
-    <section className="rounded-xl border border-cyan-400/20 bg-slate-900/50 p-4 shadow-lg shadow-cyan-950/20">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
+    <section className="rounded-[24px] border border-cyan-400/20 bg-slate-900/40 p-1.25 shadow-lg shadow-cyan-950/20">
+      <div className="flex items-center justify-between gap-3 px-0.5 pt-0.25">
+        <h2 className="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
           Voice Input
         </h2>
         <span
-          className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${
+          className={`rounded-full px-3 py-1 text-[9px] uppercase tracking-[0.18em] ${
             isListening
               ? "border border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
               : "border border-slate-700/70 bg-slate-950/70 text-slate-400"
@@ -223,92 +219,92 @@ export default function VoiceControls({
         </span>
       </div>
 
-      <div className="mt-5 flex flex-col items-center">
-        <button
-          type="button"
-          disabled={isUnavailable}
-          aria-pressed={isListening}
-          onPointerDown={handlePressStart}
-          onPointerUp={handlePressEnd}
-          onPointerCancel={handlePressEnd}
-          className={`group relative grid h-36 w-36 place-items-center rounded-full border text-sm font-semibold transition duration-300 ${
-            isListening
-              ? "border-emerald-200/80 bg-emerald-300 text-emerald-950 shadow-[0_0_60px_rgba(52,211,153,0.45)]"
-              : "border-cyan-300/40 bg-cyan-300/10 text-cyan-100 shadow-[0_0_45px_rgba(34,211,238,0.16)] hover:border-cyan-200/80 hover:bg-cyan-300/20"
-          } disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500`}
-        >
-          <span
-            className={`absolute inset-2 rounded-full border ${
-              isListening ? "animate-ping border-emerald-100/40" : "border-cyan-200/10"
-            }`}
-          />
-          <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-current/40 bg-slate-950/20">
-            <span className="h-8 w-5 rounded-full border-2 border-current" />
-            <span className="absolute bottom-4 h-3 w-8 rounded-b-full border-b-2 border-current" />
-            <span className="absolute bottom-2 h-3 w-0.5 rounded-full bg-current" />
-          </span>
-          <span className="relative mt-20 text-[10px] uppercase tracking-[0.22em]">
-            {isListening ? "Release" : "Hold"}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={toggleLockedListening}
-          disabled={isUnavailable}
-          className="mt-4 rounded-md border border-slate-700/80 px-3 py-2 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:border-cyan-300/70 hover:text-cyan-100 disabled:cursor-not-allowed disabled:text-slate-600"
-        >
-          {isLocked || isListening ? "Stop toggle mode" : "Toggle listening"}
-        </button>
-      </div>
-
-      <div className="mt-5 rounded-lg border border-slate-800/70 bg-slate-950/70 p-3">
-        <div className="flex h-12 items-end gap-1">
-          {waveform.map((level, index) => (
+      <div className="mt-1 grid min-h-0 gap-2 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-start">
+        <div className="flex flex-col items-center gap-1.5 pt-0.25">
+          <button
+            type="button"
+            disabled={isUnavailable}
+            aria-pressed={isListening}
+            onPointerDown={handlePressStart}
+            onPointerUp={handlePressEnd}
+            onPointerCancel={handlePressEnd}
+            className={`group relative grid h-[4.9rem] w-[4.9rem] place-items-center rounded-full border text-sm font-semibold transition duration-300 ${
+              isListening
+                ? "border-emerald-200/80 bg-emerald-300 text-emerald-950 shadow-[0_0_42px_rgba(52,211,153,0.38)]"
+                : "border-cyan-300/40 bg-cyan-300/10 text-cyan-100 shadow-[0_0_34px_rgba(34,211,238,0.16)] hover:border-cyan-200/80 hover:bg-cyan-300/20"
+            } disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500`}
+          >
             <span
-              key={index}
-              className={`flex-1 rounded-full transition-all duration-100 ${
-                isListening ? "bg-cyan-300" : "bg-slate-700"
+              className={`absolute inset-2 rounded-full border ${
+                isListening ? "animate-ping border-emerald-100/35" : "border-cyan-200/10"
               }`}
-              style={{ height: `${Math.max(10, level * 100)}%`, opacity: isListening ? 0.45 + level : 0.35 }}
             />
-          ))}
+            <span className="absolute inset-[0.38rem] rounded-full border border-cyan-200/10" />
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-full border border-current/40 bg-slate-950/20">
+              <span className="h-4.5 w-3 rounded-full border-2 border-current" />
+              <span className="absolute bottom-1.75 h-2.5 w-4.5 rounded-b-full border-b-2 border-current" />
+              <span className="absolute bottom-1.5 h-3 w-0.5 rounded-full bg-current" />
+            </span>
+            <span className="absolute bottom-1 text-[8px] uppercase tracking-[0.22em]">
+              {isListening ? "Release" : "Hold"}
+            </span>
+          </button>
         </div>
-        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-          <span>Audio activity</span>
-          <span>{Math.round(activityLevel * 100)}%</span>
-        </div>
-      </div>
 
-      <div className="mt-3 min-h-16 rounded-lg border border-slate-800/70 bg-slate-950/60 p-3 text-sm text-slate-300">
-        {visibleTranscript ? (
-          <p>{visibleTranscript}</p>
-        ) : (
-          <p className="text-slate-500">Live speech transcript appears while listening.</p>
-        )}
-      </div>
-
-      {lastRecording ? (
-        <div className="mt-3 rounded-lg border border-slate-800/70 bg-slate-950/60 p-3 text-xs text-slate-400">
-          <div className="flex items-center justify-between gap-3">
-            <span>Recorded audio saved in memory</span>
-            <span>{(lastRecording.blob.size / 1024).toFixed(1)} KB</span>
+        <div className="flex min-h-0 flex-col gap-1.5">
+          <div className="rounded-2xl border border-slate-800/70 bg-slate-950/50 p-1.75">
+            <div className="mb-1 flex items-center justify-between text-[7px] uppercase tracking-[0.18em] text-slate-500">
+              <span>Input activity</span>
+              <span>{Math.round(activityLevel * 100)}%</span>
+            </div>
+            <div className="flex h-2 gap-1 overflow-hidden rounded-full bg-slate-900/90">
+              {waveform.map((level, index) => (
+                <span
+                  key={index}
+                  className="flex-1 rounded-full bg-cyan-300/80 transition-all duration-100"
+                  style={{ opacity: Math.max(0.12, isListening ? 0.4 + level : level) }}
+                />
+              ))}
+            </div>
           </div>
-          <audio className="mt-2 w-full" controls src={lastRecording.url}>
-            <track kind="captions" />
-          </audio>
-        </div>
-      ) : null}
 
-      {(microphoneError || speechError || !isSpeechSupported || isUnavailable) ? (
-        <p className="mt-3 text-xs text-amber-200">
-          {microphoneError ||
-            speechError ||
-            (!isSpeechSupported
-              ? "Speech recognition is unavailable here, but microphone recording still works."
-              : "Voice input needs a browser with MediaRecorder support.")}
-        </p>
-      ) : null}
+          <div className="min-h-9 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.75 text-[0.72rem] text-slate-300">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                {visibleTranscript ? (
+                  <p className="truncate">{visibleTranscript}</p>
+                ) : (
+                  <p className="text-slate-500">Live speech transcript appears while listening.</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={toggleLockedListening}
+                disabled={isUnavailable}
+                className="shrink-0 rounded-full border border-slate-700/80 px-2.5 py-1 text-[8px] uppercase tracking-[0.16em] text-slate-300 transition hover:border-cyan-300/70 hover:text-cyan-100 disabled:cursor-not-allowed disabled:text-slate-600"
+              >
+                {isLocked || isListening ? "Stop" : "Toggle"}
+              </button>
+            </div>
+          </div>
+
+          {lastRecording ? (
+            <audio className="hidden" controls src={lastRecording.url}>
+              <track kind="captions" />
+            </audio>
+          ) : null}
+
+          {(microphoneError || speechError || !isSpeechSupported || isUnavailable) ? (
+            <p className="text-[0.64rem] text-amber-200">
+              {microphoneError ||
+                speechError ||
+                (!isSpeechSupported
+                  ? "Speech recognition is unavailable here, but microphone recording still works."
+                  : "Voice input needs a browser with MediaRecorder support.")}
+            </p>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }

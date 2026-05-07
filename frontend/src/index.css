@@ -14,4 +14,15 @@ body {
   margin: 0;
   font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   background-color: #020617;
+  color: #e2e8f0;
+  background-image:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 32%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 28%),
+    linear-gradient(180deg, #020617 0%, #020617 100%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+  color: #f8fafc;
 }

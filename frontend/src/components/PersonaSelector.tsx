@@ -27,22 +27,37 @@ export default function PersonaSelector({ value, onChange }: PersonaSelectorProp
   const selectedPersona = personas.find((persona) => persona.value === value) ?? personas[0];
 
   return (
-    <section className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
+    <section className="rounded-[24px] border border-slate-800/70 bg-slate-900/35 p-2">
+      <h2 className="text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
         Persona
       </h2>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value as PersonaId)}
-        className="mt-3 w-full rounded-md border border-slate-700/80 bg-slate-950 px-3 py-2 text-sm text-slate-100"
-      >
-        {personas.map((persona) => (
-          <option key={persona.value} value={persona.value}>
-            {persona.label}
-          </option>
-        ))}
-      </select>
-      <p className="mt-2 text-xs text-slate-500">{selectedPersona.description}</p>
+      <div className="mt-1.5 grid gap-2">
+        {personas.map((persona) => {
+          const isSelected = persona.value === value;
+
+          return (
+            <button
+              key={persona.value}
+              type="button"
+              onClick={() => onChange(persona.value)}
+              className={`rounded-2xl border px-3 py-2 text-left transition ${
+                isSelected
+                  ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-50 shadow-[0_0_30px_rgba(34,211,238,0.12)]"
+                  : "border-slate-700/70 bg-slate-950/55 text-slate-300 hover:border-cyan-300/30 hover:bg-slate-900/75"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold">{persona.label}</span>
+                <span className="rounded-full border border-slate-700/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                  {persona.value === "reception-assistant" ? "Front desk" : persona.value}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{persona.description}</p>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 text-xs text-slate-500">{selectedPersona.description}</p>
     </section>
   );
 }
