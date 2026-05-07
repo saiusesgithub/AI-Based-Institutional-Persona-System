@@ -23,7 +23,7 @@ This folder contains the production-style codebase for the AI Institutional Pers
 3. .\.venv\Scripts\Activate.ps1  (Windows PowerShell)
 4. pip install -r requirements.txt
 5. copy .env.example .env
-6. set GEMINI_API_KEY and ELEVENLABS_API_KEY in backend/.env
+6. set GEMINI_API_KEY in backend/.env
 7. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 macOS or Linux activation:
@@ -34,7 +34,7 @@ macOS or Linux activation:
 
 - Frontend voice transcripts are sent to the backend `/chat` route.
 - Backend uses Gemini 2.5 Flash with persona prompts from `backend/app/personas.json`.
-- Set `GEMINI_API_KEY` and `ELEVENLABS_API_KEY` in `backend/.env` before using AI responses and voice output.
+- Set `GEMINI_API_KEY` in `backend/.env` before using AI responses. Edge TTS generates backend audio for avatar speech.
 
 ## Chat flow
 
@@ -44,7 +44,7 @@ macOS or Linux activation:
 4. Gemini returns a concise institutional response.
 5. The frontend appends the AI response to chat history.
 6. The frontend sends the AI response text to `POST /tts`.
-7. FastAPI generates MP3 speech with ElevenLabs.
+7. FastAPI generates MP3 speech with `edge-tts`.
 8. The frontend converts the returned audio to WAV and requests Rhubarb mouth cues from `POST /lipsync`.
 9. The frontend plays the audio and drives avatar mouth blendshapes from Rhubarb timing.
 
@@ -55,9 +55,8 @@ Backend:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
-ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
-ELEVENLABS_MODEL=eleven_multilingual_v2
-ELEVENLABS_DEFAULT_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+EDGE_TTS_VOICE=en-US-AriaNeural
+TTS_CLEANUP_AFTER_SECONDS=1800
 RHUBARB_PATH=C:\tools\rhubarb\rhubarb.exe
 FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```

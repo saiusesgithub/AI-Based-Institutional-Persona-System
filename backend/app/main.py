@@ -1,15 +1,17 @@
 import logging
 import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routes.chat import router as chat_router
 from app.routes.lipsync import router as lipsync_router
 from app.routes.tts import router as tts_router
-from app.services.elevenlabs_service import ElevenLabsService
 from app.services.gemini_service import GeminiService
 from app.services.rhubarb_service import RhubarbService
+from app.services.tts_service import TTSService
 
 try:
     from dotenv import load_dotenv
@@ -17,7 +19,10 @@ except ImportError:
     load_dotenv = None
 
 if load_dotenv:
-    load_dotenv()
+    app_dir = Path(__file__).resolve().parent
+    backend_dir = app_dir.parent
+    load_dotenv(backend_dir / ".env")
+    load_dotenv(app_dir / ".env", override=False)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -41,8 +46,9 @@ app.add_middleware(
 )
 
 app.state.gemini_service = GeminiService()
-app.state.elevenlabs_service = ElevenLabsService()
+app.state.tts_service = TTSService()
 app.state.rhubarb_service = RhubarbService()
+app.mount("/audio", StaticFiles(directory=app.state.tts_service.output_dir), name="audio")
 app.include_router(chat_router)
 app.include_router(tts_router)
 app.include_router(lipsync_router)

@@ -1,7 +1,6 @@
 import { Environment, Html, OrbitControls, useFBX } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import { motion } from "framer-motion";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useAvatarSpeechAnimation } from "../hooks/useAvatarSpeechAnimation";
@@ -21,8 +20,6 @@ type HeadshotConfig = {
   fov: number;
 };
 
-const fixedHeadshotTarget: [number, number, number] = [0, 5.6, 0];
-const fixedHeadshotDistance = 4.2;
 type AvatarSceneProps = {
   avatarState: AvatarState;
   lipSyncPlayback: LipSyncPlayback | null;
@@ -31,7 +28,15 @@ type AvatarSceneProps = {
 const fixedHeadshotTarget: [number, number, number] = [0, 1.6374, -0.05];
 const fixedHeadshotDistance = 1.25;
 const fixedHeadshotFov = 22;
-const fixedModelScale = 2.5;
+
+const relaxedArmPose = {
+  shoulderZ: 0.85,
+  upperArmZ: 1.85,
+  upperArmX: 0.15,
+  upperArmY: 0.2,
+  lowerArmZ: 0.55,
+  lowerArmX: 0.25
+};
 
 const avatarStateStyles: Record<AvatarState, { label: string; border: string; glow: string; dot: string }> = {
   idle: {
@@ -88,10 +93,6 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
   const stateStyle = avatarStateStyles[avatarState];
 
   useEffect(() => {
-    if (model.userData.__normalized) {
-      return;
-    }
-
     const meshNames: string[] = [];
     const morphTargetMeshes: string[] = [];
     const posedBones: string[] = [];
@@ -101,6 +102,7 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
       if ((node as THREE.Mesh).isMesh) {
         const mesh = node as THREE.Mesh;
         const meshName = mesh.name || mesh.uuid;
+
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
@@ -125,7 +127,29 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
         const boneName = bone.name.toLowerCase();
         boneNames.push(bone.name);
 
-        posedBones.push(bone.name);
+        const isLeft = boneName.includes("left") || boneName.includes("_l") || boneName.endsWith(".l");
+        const isRight = boneName.includes("right") || boneName.includes("_r") || boneName.endsWith(".r");
+        const isUpperArm = boneName.includes("upperarm") || boneName.includes("leftarm") || boneName.includes("rightarm") || boneName.includes("uparm");
+        const isLowerArm = boneName.includes("lowerarm") || boneName.includes("forearm") || boneName.includes("lowarm");
+        const isShoulder = boneName.includes("shoulder") || boneName.includes("clavicle") || boneName.includes("collar");
+
+        if (isShoulder && (isLeft || isRight)) {
+          bone.rotation.z += (isLeft ? -1 : 1) * relaxedArmPose.shoulderZ;
+          posedBones.push(bone.name);
+        }
+
+        if (isUpperArm && (isLeft || isRight)) {
+          bone.rotation.z += (isLeft ? -1 : 1) * relaxedArmPose.upperArmZ;
+          bone.rotation.x += relaxedArmPose.upperArmX;
+          bone.rotation.y += (isLeft ? 1 : -1) * relaxedArmPose.upperArmY;
+          posedBones.push(bone.name);
+        }
+
+        if (isLowerArm && (isLeft || isRight)) {
+          bone.rotation.z += (isLeft ? -1 : 1) * relaxedArmPose.lowerArmZ;
+          bone.rotation.x += relaxedArmPose.lowerArmX;
+          posedBones.push(bone.name);
+        }
       }
     });
 
@@ -139,12 +163,36 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
 
     console.log("[Avatar] Bone list:", boneNames);
 
-    model.visible = true;
-    model.position.set(0, 1.8, 0);
-    model.rotation.set(0, 0, 0);
-    model.scale.setScalar(fixedModelScale);
+    if (posedBones.length > 0) {
+      console.log("[Avatar] Relaxed arm pose applied to bones:", posedBones);
+    }
 
-    model.userData.__normalized = true;
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+
+    if (size.y > 0) {
+      const desiredHeight = 1.7;
+      const scale = desiredHeight / size.y;
+      model.scale.setScalar(scale);
+    }
+
+    box.setFromObject(model);
+    center.copy(box.getCenter(new THREE.Vector3()));
+
+    model.position.sub(center);
+    model.position.y += box.getSize(new THREE.Vector3()).y / 2;
+
+    box.setFromObject(model);
+    const adjustedSize = box.getSize(new THREE.Vector3());
+    const headY = Math.max(adjustedSize.y * 0.82, 1.15);
+    const distance = THREE.MathUtils.clamp(adjustedSize.y * 0.55, 1.2, 2.4);
+
+    console.log("[Avatar] Size after scale:", adjustedSize);
+    console.log("[Avatar] Head target:", headY, "Camera distance:", distance);
+
+    setHeadshotTarget([0, headY, 0]);
+    setHeadshotDistance(distance);
 
   }, [model]);
 
@@ -162,22 +210,6 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
   }, []);
 
   return (
-    <motion.div
-      className="avatar-frame relative h-full w-full overflow-hidden rounded-2xl border border-cyan-400/15 bg-slate-950/70"
-      animate={{ y: [0, -6, 0] }}
-      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-    >
-      <div className="avatar-glow pointer-events-none absolute inset-0" />
-      <div className="avatar-particles pointer-events-none absolute inset-0" />
-      <div className="avatar-blink pointer-events-none absolute inset-0" />
-
-      <div className="avatar-stage h-full w-full">
-        <Canvas
-          className="h-full w-full"
-          shadows
-          camera={{ position: [0, 5.6, 4.2], fov: 22, near: 0.05, far: 100 }}
-          gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
-        >
     <div
       className={`relative h-full w-full overflow-hidden rounded-2xl border bg-slate-950/60 shadow-2xl transition duration-300 ${stateStyle.border} ${stateStyle.glow}`}
     >
@@ -229,16 +261,15 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
             distance={fixedHeadshotDistance}
             fov={fixedHeadshotFov}
           />
-          <ambientLight intensity={1} />
+          <ambientLight intensity={0.45} />
           <directionalLight
             castShadow
-            position={[0, 2, 5]}
-            intensity={1.25}
+            position={[3, 5, 2]}
+            intensity={1.2}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
-          <spotLight position={[-2, 5, 4]} intensity={0.7} angle={0.35} penumbra={0.5} />
-          <spotLight position={[2, 6, -2]} intensity={0.45} angle={0.45} penumbra={0.6} />
+          <spotLight position={[-2, 5, 4]} intensity={0.6} angle={0.35} penumbra={0.5} />
 
           <group position={[0, 0, 0]}>
             <primitive object={model} />
@@ -264,14 +295,8 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
             maxAzimuthAngle={0}
           />
         </Suspense>
-        </Canvas>
-      </div>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-      <div className="pointer-events-none absolute left-6 top-6 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-cyan-100/80">
-        cinematic preview
-      </div>
-    </motion.div>
+      </Canvas>
+    </div>
   );
 }
 

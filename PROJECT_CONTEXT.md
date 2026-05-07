@@ -2,7 +2,7 @@
 
 ## Vision
 
-We are building an AI-powered institutional persona assistant for college/demo/kiosk environments.
+We are building an AI-powered institutional persona assistant for college, demo, and kiosk environments.
 
 The system should simulate a real institutional representative such as:
 - HOD
@@ -11,7 +11,7 @@ The system should simulate a real institutional representative such as:
 - Reception assistant
 
 The user should be able to:
-- ask questions using voice/text
+- ask questions using voice or text
 - receive AI-generated spoken responses
 - interact with a realistic digital avatar
 
@@ -21,11 +21,9 @@ The long-term goal is:
 - kiosk deployment
 - interactive campus assistant
 
----
+## Final Technical Direction
 
-# Final Technical Direction
-
-We decided NOT to use:
+We decided not to use:
 - SadTalker
 - Wav2Lip
 - MuseTalk
@@ -33,32 +31,20 @@ We decided NOT to use:
 
 Main reason:
 - too much latency
-- unstable
-- dependency hell
+- unstable dependencies
 - poor realtime experience
 - difficult hardware requirements
 
-Instead, we are building:
+Instead, we are building a 3D realtime avatar system:
 
-# 3D Realtime Avatar System
+User input -> STT/text -> FastAPI backend -> Gemini response -> Edge TTS audio -> Rhubarb lip sync -> browser 3D avatar blendshapes
 
-Architecture:
-
-User
-→ Speech/Text Input
-→ LLM Backend
-→ ElevenLabs Voice
-→ Browser-based 3D Avatar
-→ Realtime Lip Sync using Blendshapes
-
----
-
-# Avatar System
+## Avatar System
 
 We already have:
 - a 3D avatar model
-- FBX format
-- ARKit/blendshape facial controls
+- FBX/GLB assets
+- ARKit-style blendshape facial controls
 
 Verified blendshapes include:
 - mouthFunnel
@@ -67,111 +53,59 @@ Verified blendshapes include:
 - mouthStretch
 - mouthRoll
 - mouthShrug
+- jawOpen
 - brow controls
 - facial expression controls
 
 This means:
 - realtime facial animation is possible
-- realtime lip sync is possible
-- no need for generated talking videos
+- lip sync is possible without generated talking-head video
 
----
+## Preferred Stack
 
-# Preferred Stack
-
-## Frontend
+Frontend:
 - React
 - Vite
 - Three.js / React Three Fiber
 - Tailwind CSS
 
-Purpose:
-- render avatar
-- persona selection
-- mic/chat UI
-- realtime avatar animation
-
----
-
-## Backend
+Backend:
 - FastAPI
+- Gemini API for persona-aware responses
+- Edge TTS for generated audio files
+- Rhubarb Lip Sync for phoneme timing
 
-Purpose:
-- LLM orchestration
-- ElevenLabs integration
-- persona management
-- future RAG/data integration
+## Voice And Lip Sync
 
----
+Current voice pipeline:
+- backend generates MP3 audio with edge-tts
+- frontend plays returned audio URL
+- frontend converts the MP3 to WAV for Rhubarb processing
+- backend returns Rhubarb mouth cues
+- frontend animates avatar blendshapes from phoneme timings
 
-## Voice
-- ElevenLabs
-- streaming audio preferred in future
+Future voice pipeline:
+- streaming TTS
+- streaming viseme events
+- tighter avatar expression control
 
----
+## Development Philosophy
 
-## Lip Sync
+We are building this step by step. Realtime responsiveness is more important than photorealistic generated video.
 
-Initial version:
-- audio amplitude-based mouth movement
+## Folder Structure
 
-Future version:
-- viseme-based realtime facial animation
-
----
-
-# Development Philosophy
-
-We are building this step by step.
-
-Current priority:
-- setup proper codebase
-- load 3D avatar in browser
-- test blendshape control
-- animate mouth manually
-
-NOT building full AI system immediately.
-
----
-
-# Current Development Goal
-
-FIRST MILESTONE:
-
-Load avatar into browser and control blendshapes manually.
-
-If this works:
-- realtime talking avatar becomes achievable
-- AI + voice integration becomes easy later
-
----
-
-# Folder Structure Goal
-
-institutional-avatar-agent/
-
+```text
 frontend/
 backend/
 docs/
+```
 
----
-
-# Important Notes
-
-This project is NOT a cinematic AI video generator.
-
-This is an:
-- interactive realtime AI digital human system
-
-Realtime responsiveness is more important than photorealistic generated videos.
-
----
-
-# Long-Term Features
+## Long-Term Features
 
 Planned future features:
 - multiple personas
-- voice cloning
+- improved voice provider support
 - realtime streaming speech
 - kiosk mode
 - push-to-talk

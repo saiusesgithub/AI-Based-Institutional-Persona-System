@@ -3,10 +3,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.models.tts_models import TTSRequest, TTSResponse
-from app.services.elevenlabs_service import (
-    ElevenLabsConfigurationError,
-    ElevenLabsServiceError,
-)
+from app.services.tts_service import TTSServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -15,26 +12,15 @@ router = APIRouter(prefix="/tts", tags=["tts"])
 
 @router.post("", response_model=TTSResponse)
 async def tts(payload: TTSRequest, request: Request) -> TTSResponse:
-    elevenlabs_service = request.app.state.elevenlabs_service
+    tts_service = request.app.state.tts_service
 
     try:
-        audio = await elevenlabs_service.synthesize_speech(
+        audio = await tts_service.synthesize_speech(
             text=payload.text,
-            persona_key=payload.persona,
+            base_url=str(request.base_url),
         )
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown persona: {payload.persona}",
-        ) from exc
-    except ElevenLabsConfigurationError as exc:
-        logger.error("ElevenLabs configuration error: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
-    except ElevenLabsServiceError as exc:
-        logger.error("ElevenLabs service error: %s", exc)
+    except TTSServiceError as exc:
+        logger.error("TTS service error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(exc),
