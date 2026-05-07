@@ -1,5 +1,5 @@
 import { Environment, Html, OrbitControls, useFBX } from "@react-three/drei";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -15,8 +15,8 @@ type MorphTargetInfo = {
 };
 
 type HeadshotConfig = {
+  position: [number, number, number];
   target: [number, number, number];
-  distance: number;
   fov: number;
 };
 
@@ -25,17 +25,28 @@ type AvatarSceneProps = {
   lipSyncPlayback: LipSyncPlayback | null;
 };
 
-const fixedHeadshotTarget: [number, number, number] = [0, 1.6374, -0.05];
-const fixedHeadshotDistance = 1.25;
+const fixedHeadshotPosition: [number, number, number] = [0, 1.6, 5];
+const fixedHeadshotTarget: [number, number, number] = [0, 1.4, 0];
 const fixedHeadshotFov = 22;
+
+const cameraLimits = {
+  minDistance: 1.9,
+  maxDistance: 3.25,
+  minPolarAngle: 1.08,
+  maxPolarAngle: 1.74,
+  minAzimuthAngle: -0.95,
+  maxAzimuthAngle: 0.95,
+  minTarget: new THREE.Vector3(-0.22, 1.22, -0.2),
+  maxTarget: new THREE.Vector3(0.22, 1.56, 0.2)
+};
 
 const relaxedArmPose = {
   shoulderZ: 0.85,
-  upperArmZ: 1.85,
-  upperArmX: 0.15,
-  upperArmY: 0.2,
-  lowerArmZ: 0.55,
-  lowerArmX: 0.25
+  upperArmZ: 0.45,
+  upperArmX: 0,
+  upperArmY: 0,
+  lowerArmZ: 0.05,
+  lowerArmX: 0
 };
 
 const avatarStateStyles: Record<AvatarState, { label: string; border: string; glow: string; dot: string }> = {
@@ -65,30 +76,90 @@ const avatarStateStyles: Record<AvatarState, { label: string; border: string; gl
   }
 };
 
-function HeadshotCamera({ target, distance, fov }: HeadshotConfig) {
+function HeadshotCamera({ position, target, fov }: HeadshotConfig) {
   const { camera } = useThree();
 
   useEffect(() => {
     const perspectiveCamera = camera as THREE.PerspectiveCamera;
-    const safeDistance = Math.max(distance, 0.9);
 
     perspectiveCamera.near = 0.05;
-    perspectiveCamera.far = Math.max(60, safeDistance * 30);
+    perspectiveCamera.far = 120;
     perspectiveCamera.fov = fov;
-    perspectiveCamera.position.set(target[0], target[1], target[2] + safeDistance);
+    perspectiveCamera.position.set(position[0], position[1], position[2]);
     perspectiveCamera.lookAt(target[0], target[1], target[2]);
     perspectiveCamera.updateProjectionMatrix();
-  }, [camera, distance, fov, target]);
+  }, [camera, fov, position, target]);
 
   return null;
 }
 
+function AvatarControlRig({ onDraggingChange }: { onDraggingChange: (isDragging: boolean) => void }) {
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+
+    if (!controls) {
+      return;
+    }
+
+    const handleStart = () => onDraggingChange(true);
+    const handleEnd = () => onDraggingChange(false);
+
+    controls.addEventListener("start", handleStart);
+    controls.addEventListener("end", handleEnd);
+
+    return () => {
+      controls.removeEventListener("start", handleStart);
+      controls.removeEventListener("end", handleEnd);
+      onDraggingChange(false);
+    };
+  }, [onDraggingChange]);
+
+  useFrame(() => {
+    const controls = controlsRef.current;
+
+    if (!controls) {
+      return;
+    }
+
+    controls.target.clamp(cameraLimits.minTarget, cameraLimits.maxTarget);
+
+    const cameraPosition = camera.position;
+    cameraPosition.y = Math.max(cameraPosition.y, 0.72);
+
+    controls.update();
+  });
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enableDamping
+      dampingFactor={0.08}
+      rotateSpeed={0.55}
+      zoomSpeed={0.75}
+      panSpeed={0.5}
+      enablePan
+      enableRotate
+      enableZoom
+      minDistance={cameraLimits.minDistance}
+      maxDistance={cameraLimits.maxDistance}
+      minPolarAngle={cameraLimits.minPolarAngle}
+      maxPolarAngle={cameraLimits.maxPolarAngle}
+      minAzimuthAngle={cameraLimits.minAzimuthAngle}
+      maxAzimuthAngle={cameraLimits.maxAzimuthAngle}
+      target={fixedHeadshotTarget}
+      mouseButtons={{ LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }}
+      touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
+    />
+  );
+}
+
 export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarSceneProps) {
   const model = useFBX(modelUrl);
-  const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const morphTargetsRef = useRef<Record<string, MorphTargetInfo>>({});
-  const [headshotTarget, setHeadshotTarget] = useState<[number, number, number]>([0, 1.4, 0]);
-  const [headshotDistance, setHeadshotDistance] = useState(2.2);
+  const [isDragging, setIsDragging] = useState(false);
   const { availableBlendshapes, debugState } = useAvatarSpeechAnimation(model, avatarState, lipSyncPlayback);
   const stateStyle = avatarStateStyles[avatarState];
 
@@ -172,7 +243,7 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
     const size = box.getSize(new THREE.Vector3());
 
     if (size.y > 0) {
-      const desiredHeight = 1.7;
+      const desiredHeight = 1.95;
       const scale = desiredHeight / size.y;
       model.scale.setScalar(scale);
     }
@@ -182,47 +253,32 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
 
     model.position.sub(center);
     model.position.y += box.getSize(new THREE.Vector3()).y / 2;
+    model.position.y += 0.18;
 
     box.setFromObject(model);
     const adjustedSize = box.getSize(new THREE.Vector3());
-    const headY = Math.max(adjustedSize.y * 0.82, 1.15);
-    const distance = THREE.MathUtils.clamp(adjustedSize.y * 0.55, 1.2, 2.4);
-
     console.log("[Avatar] Size after scale:", adjustedSize);
-    console.log("[Avatar] Head target:", headY, "Camera distance:", distance);
-
-    setHeadshotTarget([0, headY, 0]);
-    setHeadshotDistance(distance);
 
   }, [model]);
 
-  useEffect(() => {
-    if (!controlsRef.current) {
-      return;
-    }
-
-    controlsRef.current.target.set(
-      fixedHeadshotTarget[0],
-      fixedHeadshotTarget[1],
-      fixedHeadshotTarget[2]
-    );
-    controlsRef.current.update();
-  }, []);
-
   return (
     <div
-      className={`relative h-full w-full overflow-hidden rounded-2xl border bg-slate-950/60 shadow-2xl transition duration-300 ${stateStyle.border} ${stateStyle.glow}`}
+      className={`relative h-full min-h-[38rem] w-full overflow-hidden rounded-[32px] border bg-slate-950/70 shadow-[0_25px_90px_rgba(0,0,0,0.45)] transition duration-300 ${stateStyle.border} ${stateStyle.glow} ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+      onContextMenu={(event) => event.preventDefault()}
     >
-      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-xs text-slate-200 backdrop-blur">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.16),transparent_56%),linear-gradient(180deg,rgba(2,6,23,0.1),rgba(2,6,23,0.75))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-28 bg-gradient-to-b from-cyan-300/12 via-cyan-300/5 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent" />
+      <div className="pointer-events-none absolute left-4 top-4 z-20 rounded-full border border-slate-700/70 bg-slate-950/80 px-4 py-2 text-xs text-slate-200 backdrop-blur">
         <span className="mr-2 inline-flex h-2.5 w-2.5 rounded-full">
           <span className={`h-2.5 w-2.5 rounded-full ${stateStyle.dot} ${avatarState === "speaking" ? "animate-ping" : ""}`} />
         </span>
         Avatar {stateStyle.label}
       </div>
-      <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-lg border border-slate-800/70 bg-slate-950/75 px-3 py-2 text-[11px] text-slate-400 backdrop-blur">
+      <div className="pointer-events-none absolute bottom-4 left-4 z-20 rounded-lg border border-slate-800/70 bg-slate-950/75 px-3 py-2 text-[11px] text-slate-400 backdrop-blur">
         Morph targets: {availableBlendshapes.length}
       </div>
-      <div className="pointer-events-none absolute bottom-4 right-4 z-10 w-56 rounded-lg border border-slate-800/70 bg-slate-950/75 p-3 text-[11px] text-slate-400 backdrop-blur">
+      <div className="pointer-events-none absolute bottom-4 right-4 z-20 w-64 rounded-lg border border-slate-800/70 bg-slate-950/75 p-3 text-[11px] text-slate-400 backdrop-blur">
         <div className="mb-2 flex items-center justify-between text-slate-300">
           <span>Lip Sync Debug</span>
           <span>{debugState.isSpeaking ? "speaking" : "idle"}</span>
@@ -245,6 +301,7 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
         </div>
       </div>
       <Canvas
+        className="absolute inset-0"
         shadows
         camera={{ position: [0, 1.4, 2.2], fov: 26, near: 0.05, far: 100 }}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
@@ -257,8 +314,8 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
           }
         >
           <HeadshotCamera
+            position={fixedHeadshotPosition}
             target={fixedHeadshotTarget}
-            distance={fixedHeadshotDistance}
             fov={fixedHeadshotFov}
           />
           <ambientLight intensity={0.45} />
@@ -281,19 +338,7 @@ export default function AvatarScene({ avatarState, lipSyncPlayback }: AvatarScen
           </mesh>
 
           <Environment preset="city" />
-          <OrbitControls
-            ref={controlsRef}
-            enablePan={false}
-            enableRotate={false}
-            enableZoom={false}
-            minDistance={fixedHeadshotDistance}
-            maxDistance={fixedHeadshotDistance}
-            target={fixedHeadshotTarget}
-            minPolarAngle={Math.PI / 2}
-            maxPolarAngle={Math.PI / 2}
-            minAzimuthAngle={0}
-            maxAzimuthAngle={0}
-          />
+          <AvatarControlRig onDraggingChange={setIsDragging} />
         </Suspense>
       </Canvas>
     </div>
